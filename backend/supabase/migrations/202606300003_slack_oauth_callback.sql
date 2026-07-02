@@ -1,0 +1,93 @@
+alter table public.integrations
+add column if not exists metadata jsonb not null default '{}'::jsonb;
+
+create or replace function public.consume_oauth_state(p_state_hash text)
+returns table(owner_id uuid)
+language sql
+security definer
+set search_path = public
+as $$
+    update public.oauth_states
+    set used_at = now()
+    where state_hash = p_state_hash
+      and provider = 'SLACK'
+      and used_at is null
+      and expires_at > now()
+    returning oauth_states.owner_id;
+$$;
+
+revoke all on function public.consume_oauth_state(text) from public, anon, authenticated;
+grant execute on function public.consume_oauth_state(text) to service_role;
+
+create or replace function public.upsert_slack_integration(
+    p_owner_id uuid,
+    p_team_id text,
+    p_team_name text,
+    p_bot_user_id text,
+    p_token_ciphertext text,
+    p_scopes text[]
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+    existing_integration public.integrations%rowtype;
+    integration_id uuid;
+begin
+    select * into existing_integration
+    from public.integrations
+    where provider = 'SLACK'
+      and external_account_id = p_team_id;
+
+    if found and existing_integration.owner_id <> p_owner_id then
+        raise exception 'Slack workspace is already connected to another account';
+    end if;
+
+    if found then
+        update public.integrations
+        set display_name = p_team_name,
+            metadata = jsonb_build_object('bot_user_id', p_bot_user_id)
+        where id = existing_integration.id
+        returning id into integration_id;
+    else
+        insert into public.integrations(
+            owner_id,
+            provider,
+            external_account_id,
+            display_name,
+            metadata
+        ) values (
+            p_owner_id,
+            'SLACK',
+            p_team_id,
+            p_team_name,
+            jsonb_build_object('bot_user_id', p_bot_user_id)
+        ) returning id into integration_id;
+    end if;
+
+    insert into public.integration_credentials(
+        integration_id,
+        access_token_ciphertext,
+        scopes,
+        updated_at
+    ) values (
+        integration_id,
+        p_token_ciphertext,
+        p_scopes,
+        now()
+    )
+    on conflict (integration_id) do update
+    set access_token_ciphertext = excluded.access_token_ciphertext,
+        scopes = excluded.scopes,
+        updated_at = now();
+
+    return integration_id;
+end;
+$$;
+
+revoke all on function public.upsert_slack_integration(uuid, text, text, text, text, text[])
+from public, anon, authenticated;
+grant execute on function public.upsert_slack_integration(uuid, text, text, text, text, text[])
+to service_role;
