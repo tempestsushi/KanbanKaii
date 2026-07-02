@@ -1,9 +1,42 @@
 # KanbanKaii command cheat sheet
 
-## Start the local production services with one command
+## Deployed frontend: start the complete local backend
 
-From the project root, start Redis, Ollama, FastAPI, the ARQ worker, and an
-already-configured named Cloudflare Tunnel:
+The React frontend is already hosted by Vercel, so it does not need to run on
+this computer. From the project root, this one command starts/checks Redis,
+Ollama, FastAPI, the ARQ worker, and ngrok:
+
+```powershell
+cd D:\kanbanticket
+powershell -ExecutionPolicy Bypass -File .\scripts\start-local-server.ps1 -UseNgrok
+```
+
+Keep the opened FastAPI, ARQ, and ngrok windows running while the deployed app
+needs backend access.
+
+## Stop the complete local backend
+
+Run this in PowerShell from any folder:
+
+```powershell
+$backend = Get-NetTCPConnection -LocalPort 8000 -State Listen -ErrorAction SilentlyContinue; if ($backend) { Stop-Process -Id $backend.OwningProcess -Force }; Stop-Process -Name arq,ngrok -Force -ErrorAction SilentlyContinue; docker stop kanbankaii-redis; ollama stop llama3.2:3b
+```
+
+This stops FastAPI, the ARQ worker, ngrok, the Redis container, and unloads the
+Ollama model. The Vercel frontend remains online, but its backend-dependent
+features will be unavailable.
+
+## Run FastAPI only
+
+Use this only when Redis, Ollama, ARQ, and ngrok are already running or are not
+needed for the endpoint being tested:
+
+```powershell
+cd D:\kanbanticket\backend
+.\venv\Scripts\uvicorn.exe app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+Stop FastAPI with `Ctrl+C` in that terminal.
 
 ## 1. Start Ollama
 

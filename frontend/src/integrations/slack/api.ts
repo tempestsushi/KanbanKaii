@@ -1,5 +1,7 @@
 import { getSupabaseClient } from '@/lib/supabase';
 
+const ngrokHeaders = { 'ngrok-skip-browser-warning': '1' };
+
 interface SlackConnectResponse {
   authorization_url: string;
 }
@@ -27,6 +29,7 @@ export async function startSlackConnection(): Promise<string> {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${await authToken()}`,
+        ...ngrokHeaders,
       },
     },
   );
@@ -48,7 +51,10 @@ export async function getSlackConnectionStatus(): Promise<SlackConnectionStatus>
   const response = await fetch(
     new URL('/api/integrations/slack/status', apiBaseUrl),
     {
-      headers: { Authorization: `Bearer ${await authToken()}` },
+      headers: {
+        Authorization: `Bearer ${await authToken()}`,
+        ...ngrokHeaders,
+      },
     },
   );
   if (!response.ok) {
@@ -68,7 +74,10 @@ export async function disconnectSlack(): Promise<void> {
     new URL('/api/integrations/slack', apiBaseUrl),
     {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${await authToken()}` },
+      headers: {
+        Authorization: `Bearer ${await authToken()}`,
+        ...ngrokHeaders,
+      },
     },
   );
   if (!response.ok) {

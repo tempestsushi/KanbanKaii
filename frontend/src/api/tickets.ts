@@ -80,6 +80,7 @@ async function authenticatedHeaders(
 
   return {
     Authorization: `Bearer ${data.session.access_token}`,
+    'ngrok-skip-browser-warning': '1',
     ...(includeJson ? { 'Content-Type': 'application/json' } : {}),
   };
 }
