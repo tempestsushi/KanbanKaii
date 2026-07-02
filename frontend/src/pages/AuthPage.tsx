@@ -49,7 +49,7 @@ export function AuthPage() {
         if (signUpError) throw signUpError;
 
         if (data.session) {
-          window.location.assign('/');
+          window.location.assign('/dashboard');
           return;
         }
 
@@ -62,7 +62,7 @@ export function AuthPage() {
         password,
       });
       if (signInError) throw signInError;
-      window.location.assign('/');
+      window.location.assign('/dashboard');
     } catch (authError) {
       setError(
         authError instanceof Error

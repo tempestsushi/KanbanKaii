@@ -2,7 +2,7 @@ import { BarChart3, Home } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navigation = [
-  { label: 'Home', href: '/', icon: Home },
+  { label: 'Home', href: '/dashboard', icon: Home },
   { label: 'Analytics', href: '/analytics', icon: BarChart3 },
 ];
 

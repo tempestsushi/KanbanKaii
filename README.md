@@ -88,8 +88,9 @@ kanbanticket/
 
 | Path | Access | Purpose |
 | --- | --- | --- |
-| `/` | Authenticated | Main Kanban dashboard |
+| `/` | Public | Product landing page |
 | `/auth` | Public only | Account signup and login |
+| `/dashboard` | Authenticated | Main Kanban dashboard |
 | `/analytics` | Authenticated | User-specific ticket metrics |
 | `/profile` | Authenticated | Supabase account profile |
 | `/settings` | Authenticated | User preferences and Slack integration |

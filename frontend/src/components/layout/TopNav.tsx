@@ -90,7 +90,7 @@ export function TopNav({ pageTitle }: TopNavProps) {
                 <p className="px-4 py-5 text-center text-xs text-slate-400">No tickets have been created yet.</p>
               )}
               {!notificationsLoading && !notificationsError && notifications.map((ticket) => (
-                <a key={ticket.id} href="/" className="block px-4 py-3 hover:bg-slate-50">
+                <a key={ticket.id} href="/dashboard" className="block px-4 py-3 hover:bg-slate-50">
                   <div className="flex items-start justify-between gap-3">
                     <p className="line-clamp-2 text-xs font-medium leading-4 text-slate-700">{ticket.title}</p>
                     <span className="shrink-0 rounded bg-violet-50 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-violet-600">{ticket.source}</span>

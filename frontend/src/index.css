@@ -58,6 +58,49 @@
   }
 }
 
+@keyframes landing-message-in {
+  0%, 12% { opacity: 0; transform: translateY(14px); }
+  22%, 100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes landing-thinking-in {
+  0%, 30% { opacity: 0; transform: translateY(8px); }
+  40%, 82% { opacity: 1; transform: translateY(0); }
+  92%, 100% { opacity: .55; }
+}
+
+@keyframes landing-ticket-in {
+  0%, 50% { opacity: 0; transform: translateY(16px) scale(.96); }
+  62%, 100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes landing-pulse {
+  0%, 100% { transform: scale(.8); opacity: .5; }
+  50% { transform: scale(1.4); opacity: 1; }
+}
+
+.landing-grid {
+  background-image:
+    linear-gradient(to right, rgba(109, 83, 170, .07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(109, 83, 170, .07) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: linear-gradient(to bottom, black, transparent 88%);
+}
+
+.landing-message { animation: landing-message-in 7s ease-out infinite; }
+.landing-thinking { animation: landing-thinking-in 7s ease-out infinite; }
+.landing-ticket { animation: landing-ticket-in 7s cubic-bezier(.2, .8, .2, 1) infinite; }
+.landing-pulse { animation: landing-pulse 1.1s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-message,
+  .landing-thinking,
+  .landing-ticket,
+  .landing-pulse {
+    animation: none;
+  }
+}
+
 @layer base {
   * {
     @apply border-border;

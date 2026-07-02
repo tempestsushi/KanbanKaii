@@ -42,7 +42,7 @@ export function PublicOnlyRoute({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!isLoading && user) {
-      window.location.replace('/');
+      window.location.replace('/dashboard');
     }
   }, [isLoading, user]);
 
