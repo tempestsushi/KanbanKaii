@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
 import { useAuth } from '@/auth/AuthContext';
 import { fetchTickets } from '@/api/tickets';
 import type { Ticket } from '@/types/ticket';
+import { BackendStatus } from './BackendStatus';
 
 interface TopNavProps {
   pageTitle: string;
@@ -103,6 +104,7 @@ export function TopNav({ pageTitle }: TopNavProps) {
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3">
+        <BackendStatus />
         <details ref={notificationsMenuRef} className="group relative" onToggle={handleNotificationToggle}>
           <summary className="relative flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-violet-600 [&::-webkit-details-marker]:hidden">
             <Bell className="h-[17px] w-[17px]" />

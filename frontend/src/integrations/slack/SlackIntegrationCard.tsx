@@ -33,6 +33,7 @@ export function SlackIntegrationCard() {
     try {
       setStatus(await getSlackConnectionStatus());
     } catch (error) {
+      if (error instanceof TypeError) return;
       toast.error(
         error instanceof Error ? error.message : 'Could not load Slack status',
       );

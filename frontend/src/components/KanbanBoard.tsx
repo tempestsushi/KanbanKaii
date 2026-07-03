@@ -127,6 +127,10 @@ export function KanbanBoard() {
       setTickets(await fetchTickets({ signal }));
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') return;
+      if (error instanceof TypeError) {
+        setLoadError(null);
+        return;
+      }
       setLoadError(error instanceof Error ? error.message : 'Could not load tickets');
     } finally {
       if (!signal?.aborted) setIsLoading(false);
