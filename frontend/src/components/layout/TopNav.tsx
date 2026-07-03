@@ -9,18 +9,36 @@ interface TopNavProps {
   pageTitle: string;
 }
 
+const notificationReadKey = (userId: string) => `kanbankaii:notifications-read:${userId}`;
+
 export function TopNav({ pageTitle }: TopNavProps) {
   const { user, signOut } = useAuth();
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [notifications, setNotifications] = useState<Ticket[]>([]);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [notificationsError, setNotificationsError] = useState<string | null>(null);
+  const [notificationsReadAt, setNotificationsReadAt] = useState(0);
   const notificationsMenuRef = useRef<HTMLDetailsElement>(null);
   const profileMenuRef = useRef<HTMLDetailsElement>(null);
   const displayName =
     (user?.user_metadata.display_name as string | undefined) ||
     user?.email?.split('@')[0] ||
     'Account';
+
+  const unreadNotifications = notifications.filter((ticket) => {
+    if (!ticket.createdAt) return notificationsReadAt === 0;
+    return new Date(ticket.createdAt).getTime() > notificationsReadAt;
+  });
+
+  useEffect(() => {
+    if (!user) {
+      setNotificationsReadAt(0);
+      return;
+    }
+
+    const savedReadAt = Number(window.localStorage.getItem(notificationReadKey(user.id)) ?? 0);
+    setNotificationsReadAt(Number.isFinite(savedReadAt) ? savedReadAt : 0);
+  }, [user]);
 
   const handleSignOut = async () => {
     setIsSigningOut(true);
@@ -58,6 +76,13 @@ export function TopNav({ pageTitle }: TopNavProps) {
     if (event.currentTarget.open && notificationsMenuRef.current) {
       notificationsMenuRef.current.open = false;
     }
+  };
+
+  const markNotificationsAsRead = () => {
+    if (!user || unreadNotifications.length === 0) return;
+    const readAt = Date.now();
+    window.localStorage.setItem(notificationReadKey(user.id), String(readAt));
+    setNotificationsReadAt(readAt);
   };
 
   useEffect(() => {
@@ -108,13 +133,29 @@ export function TopNav({ pageTitle }: TopNavProps) {
         <details ref={notificationsMenuRef} className="group relative" onToggle={handleNotificationToggle}>
           <summary className="relative flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-violet-600 [&::-webkit-details-marker]:hidden">
             <Bell className="h-[17px] w-[17px]" />
-            <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-rose-500 ring-2 ring-white" />
+            {unreadNotifications.length > 0 && (
+              <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-rose-500 ring-2 ring-white" />
+            )}
             <span className="sr-only">Notifications</span>
           </summary>
           <div className="absolute right-0 z-40 mt-2 w-72 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl">
-            <div className="border-b border-slate-100 px-4 py-3">
-              <p className="text-sm font-semibold text-slate-800">Notifications</p>
-              <p className="text-[11px] text-slate-400">Recently created tickets</p>
+            <div className="flex items-start justify-between gap-3 border-b border-slate-100 px-4 py-3">
+              <div>
+                <p className="text-sm font-semibold text-slate-800">Notifications</p>
+                <p className="text-[11px] text-slate-400">
+                  {unreadNotifications.length > 0
+                    ? `${unreadNotifications.length} unread ticket${unreadNotifications.length === 1 ? '' : 's'}`
+                    : 'You are all caught up'}
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={notificationsLoading || unreadNotifications.length === 0}
+                onClick={markNotificationsAsRead}
+                className="shrink-0 text-[10px] font-semibold text-violet-600 hover:text-violet-800 disabled:cursor-default disabled:text-slate-300"
+              >
+                Mark all as read
+              </button>
             </div>
             <div className="max-h-80 divide-y divide-slate-100 overflow-y-auto">
               {notificationsLoading && (
@@ -129,15 +170,21 @@ export function TopNav({ pageTitle }: TopNavProps) {
               {!notificationsLoading && !notificationsError && notifications.length === 0 && (
                 <p className="px-4 py-5 text-center text-xs text-slate-400">No tickets have been created yet.</p>
               )}
-              {!notificationsLoading && !notificationsError && notifications.map((ticket) => (
-                <a key={ticket.id} href="/dashboard" className="block px-4 py-3 hover:bg-slate-50">
+              {!notificationsLoading && !notificationsError && notifications.map((ticket) => {
+                const isUnread = !ticket.createdAt || new Date(ticket.createdAt).getTime() > notificationsReadAt;
+                return (
+                <a key={ticket.id} href="/dashboard" className={`block px-4 py-3 hover:bg-slate-50 ${isUnread ? 'bg-violet-50/40' : ''}`}>
                   <div className="flex items-start justify-between gap-3">
-                    <p className="line-clamp-2 text-xs font-medium leading-4 text-slate-700">{ticket.title}</p>
+                    <div className="flex min-w-0 items-start gap-2">
+                      {isUnread && <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-violet-500" />}
+                      <p className="line-clamp-2 text-xs font-medium leading-4 text-slate-700">{ticket.title}</p>
+                    </div>
                     <span className="shrink-0 rounded bg-violet-50 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-violet-600">{ticket.source}</span>
                   </div>
                   <p className="mt-1.5 text-[10px] text-slate-400">Created {notificationTime(ticket.createdAt)}</p>
                 </a>
-              ))}
+                );
+              })}
             </div>
           </div>
         </details>
