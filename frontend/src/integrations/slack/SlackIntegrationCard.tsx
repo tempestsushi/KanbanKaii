@@ -55,6 +55,19 @@ export function SlackIntegrationCard() {
     void loadStatus();
   }, [loadStatus]);
 
+  useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent) => {
+      // Pressing Back after abandoning Slack OAuth can restore this page from
+      // the browser cache with its old `isConnecting` state still intact.
+      if (!event.persisted) return;
+      setIsConnecting(false);
+      void loadStatus();
+    };
+
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
+  }, [loadStatus]);
+
   const connect = async () => {
     if (isConnecting) return;
     setIsConnecting(true);
