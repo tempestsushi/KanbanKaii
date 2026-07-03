@@ -1,5 +1,4 @@
 import { ArrowRight, Check, MessageSquare, Sparkles } from 'lucide-react';
-import { useAuth } from '@/auth/AuthContext';
 
 const features = [
   {
@@ -26,9 +25,8 @@ const benefits = [
 ];
 
 export function LandingPage() {
-  const { user } = useAuth();
-  const workspaceHref = user ? '/dashboard' : '/auth';
-  const workspaceLabel = user ? 'Open dashboard' : 'Start free';
+  const workspaceHref = '/auth';
+  const workspaceLabel = 'Start free';
 
   return (
     <main className="landing-scroll h-screen overflow-y-auto bg-[#f7f7fb] text-slate-950">
@@ -51,11 +49,9 @@ export function LandingPage() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            {!user && (
-              <a className="hidden px-3 py-2 text-sm font-semibold text-slate-700 transition hover:text-violet-700 sm:block" href="/auth">
-                Sign in
-              </a>
-            )}
+            <a className="hidden px-3 py-2 text-sm font-semibold text-slate-700 transition hover:text-violet-700 sm:block" href="/auth">
+              Sign in
+            </a>
             <a className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-slate-300 transition hover:-translate-y-0.5 hover:bg-violet-700" href={workspaceHref}>
               {workspaceLabel}
               <ArrowRight className="h-4 w-4" />

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -34,11 +34,11 @@ import {
 } from '@/types/ticket';
 import { KanbanColumn } from './KanbanColumn';
 import { TicketCard } from './TicketCard';
-import { TicketModal } from './TicketModal';
 import { getSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/auth/AuthContext';
 import { notificationSettingsFromUser } from '@/api/settings';
 
+const TicketModal = lazy(() => import('./TicketModal').then((module) => ({ default: module.TicketModal })));
 
 function mergeTicket(items: Ticket[], incoming: Ticket): Ticket[] {
   const existingIndex = items.findIndex((ticket) => ticket.id === incoming.id);
@@ -428,14 +428,18 @@ export function KanbanBoard() {
         </DragOverlay>
       </DndContext>
 
-      <TicketModal
-        ticket={editingTicket}
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onSave={saveTicket}
-        onDelete={deleteTicket}
-        defaultStatus={defaultStatus}
-      />
+      {modalOpen && (
+        <Suspense fallback={null}>
+          <TicketModal
+            ticket={editingTicket}
+            isOpen={modalOpen}
+            onClose={() => setModalOpen(false)}
+            onSave={saveTicket}
+            onDelete={deleteTicket}
+            defaultStatus={defaultStatus}
+          />
+        </Suspense>
+      )}
     </>
   );
 }

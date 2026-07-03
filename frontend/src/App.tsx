@@ -1,28 +1,16 @@
-import { DashboardPage } from '@/pages/DashboardPage';
-import { AuthPage } from '@/pages/AuthPage';
-import { AnalyticsPage } from '@/pages/AnalyticsPage';
-import { ProfilePage } from '@/pages/ProfilePage';
-import { SettingsPage } from '@/pages/SettingsPage';
+import { lazy, Suspense } from 'react';
 import { LandingPage } from '@/pages/LandingPage';
-import { ProtectedRoute, PublicOnlyRoute } from '@/auth/RouteGuards';
+
+const AuthenticatedApp = lazy(() => import('@/auth/AuthenticatedApp'));
 
 function App() {
-  switch (window.location.pathname) {
-    case '/':
-      return <LandingPage />;
-    case '/auth':
-      return <PublicOnlyRoute><AuthPage /></PublicOnlyRoute>;
-    case '/dashboard':
-      return <ProtectedRoute><DashboardPage /></ProtectedRoute>;
-    case '/analytics':
-      return <ProtectedRoute><AnalyticsPage /></ProtectedRoute>;
-    case '/profile':
-      return <ProtectedRoute><ProfilePage /></ProtectedRoute>;
-    case '/settings':
-      return <ProtectedRoute><SettingsPage /></ProtectedRoute>;
-    default:
-      return <LandingPage />;
-  }
+  if (window.location.pathname === '/') return <LandingPage />;
+
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-violet-50" />}>
+      <AuthenticatedApp />
+    </Suspense>
+  );
 }
 
 export default App;
