@@ -37,6 +37,7 @@ import { TicketCard } from './TicketCard';
 import { TicketModal } from './TicketModal';
 import { getSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/auth/AuthContext';
+import { notificationSettingsFromUser } from '@/api/settings';
 
 
 function mergeTicket(items: Ticket[], incoming: Ticket): Ticket[] {
@@ -76,6 +77,8 @@ export function KanbanBoard() {
   const [sortMode, setSortMode] = useState<SortMode>('NEWEST');
   const [openMenu, setOpenMenu] = useState<BoardMenu>(null);
   const controlsRef = useRef<HTMLDivElement>(null);
+  const ticketsRef = useRef<Ticket[]>([]);
+  const notificationSettings = useMemo(() => notificationSettingsFromUser(user), [user]);
 
   const activeFilterCount = Number(priorityFilter !== 'ALL') + Number(sourceFilter !== 'ALL');
 
@@ -137,6 +140,10 @@ export function KanbanBoard() {
   }, [loadTickets]);
 
   useEffect(() => {
+    ticketsRef.current = tickets;
+  }, [tickets]);
+
+  useEffect(() => {
     if (!user) return undefined;
 
     const supabase = getSupabaseClient();
@@ -152,8 +159,10 @@ export function KanbanBoard() {
         },
         (payload) => {
           const incoming = mapApiTicket(payload.new as ApiTicket);
-          setTickets((items) => mergeTicket(items, incoming));
-          if (incoming.source === 'Slack') {
+          const nextTickets = mergeTicket(ticketsRef.current, incoming);
+          ticketsRef.current = nextTickets;
+          setTickets(nextTickets);
+          if (incoming.source === 'Slack' && notificationSettings.newTickets) {
             toast.success(`New Slack ticket: ${incoming.title}`);
           }
         },
@@ -168,7 +177,17 @@ export function KanbanBoard() {
         },
         (payload) => {
           const incoming = mapApiTicket(payload.new as ApiTicket);
-          setTickets((items) => mergeTicket(items, incoming));
+          const previous = ticketsRef.current.find((ticket) => ticket.id === incoming.id);
+          const nextTickets = mergeTicket(ticketsRef.current, incoming);
+          ticketsRef.current = nextTickets;
+          setTickets(nextTickets);
+          if (
+            previous &&
+            previous.status !== incoming.status &&
+            notificationSettings.statusChanges
+          ) {
+            toast.info(`${incoming.title} moved to ${incoming.status}`);
+          }
         },
       )
       .subscribe();
@@ -176,7 +195,7 @@ export function KanbanBoard() {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [notificationSettings.newTickets, notificationSettings.statusChanges, user]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
