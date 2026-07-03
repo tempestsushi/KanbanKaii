@@ -1,5 +1,5 @@
 import { Bell, UserRound } from 'lucide-react';
-import { useState, type SyntheticEvent } from 'react';
+import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
 import { useAuth } from '@/auth/AuthContext';
 import { fetchTickets } from '@/api/tickets';
 import type { Ticket } from '@/types/ticket';
@@ -14,6 +14,8 @@ export function TopNav({ pageTitle }: TopNavProps) {
   const [notifications, setNotifications] = useState<Ticket[]>([]);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [notificationsError, setNotificationsError] = useState<string | null>(null);
+  const notificationsMenuRef = useRef<HTMLDetailsElement>(null);
+  const profileMenuRef = useRef<HTMLDetailsElement>(null);
   const displayName =
     (user?.user_metadata.display_name as string | undefined) ||
     user?.email?.split('@')[0] ||
@@ -46,8 +48,44 @@ export function TopNav({ pageTitle }: TopNavProps) {
   };
 
   const handleNotificationToggle = (event: SyntheticEvent<HTMLDetailsElement>) => {
-    if (event.currentTarget.open) void loadNotifications();
+    if (!event.currentTarget.open) return;
+    if (profileMenuRef.current) profileMenuRef.current.open = false;
+    void loadNotifications();
   };
+
+  const handleProfileToggle = (event: SyntheticEvent<HTMLDetailsElement>) => {
+    if (event.currentTarget.open && notificationsMenuRef.current) {
+      notificationsMenuRef.current.open = false;
+    }
+  };
+
+  useEffect(() => {
+    const closeMenus = () => {
+      if (notificationsMenuRef.current) notificationsMenuRef.current.open = false;
+      if (profileMenuRef.current) profileMenuRef.current.open = false;
+    };
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (
+        !notificationsMenuRef.current?.contains(target) &&
+        !profileMenuRef.current?.contains(target)
+      ) {
+        closeMenus();
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeMenus();
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
   const notificationTime = (createdAt?: string) => {
     if (!createdAt) return 'Recently';
@@ -65,7 +103,7 @@ export function TopNav({ pageTitle }: TopNavProps) {
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3">
-        <details className="group relative" onToggle={handleNotificationToggle}>
+        <details ref={notificationsMenuRef} className="group relative" onToggle={handleNotificationToggle}>
           <summary className="relative flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-violet-600 [&::-webkit-details-marker]:hidden">
             <Bell className="h-[17px] w-[17px]" />
             <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-rose-500 ring-2 ring-white" />
@@ -102,7 +140,7 @@ export function TopNav({ pageTitle }: TopNavProps) {
           </div>
         </details>
 
-        <details className="group relative">
+        <details ref={profileMenuRef} className="group relative" onToggle={handleProfileToggle}>
           <summary className="flex cursor-pointer list-none items-center gap-2 rounded-full p-0.5 pr-2 hover:bg-slate-100 [&::-webkit-details-marker]:hidden">
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 text-white">
               <UserRound className="h-4 w-4" />

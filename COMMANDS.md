@@ -171,6 +171,14 @@ Enable realtime ticket updates by applying:
 D:\kanbanticket\backend\supabase\migrations\202607010008_ticket_realtime.sql
 ```
 
+Enable automatic transient webhook and historical OAuth-state cleanup:
+
+```text
+D:\kanbanticket\backend\supabase\migrations\202607030009_transient_data_retention.sql
+```
+
+The ARQ worker runs this cleanup at startup and then daily while it is online.
+
 ## 6. Run backend tests
 
 ```cmd

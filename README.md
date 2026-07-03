@@ -299,3 +299,4 @@ Slack AI processing do not.
 - OAuth state is stored one time in Redis with a ten-minute TTL.
 - Slack access tokens are encrypted before database storage.
 - AI requests are rate-limited per connected user.
+- Transient webhook deliveries follow automatic status-based retention rules.
