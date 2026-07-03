@@ -26,3 +26,8 @@ logs/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Local AI and code-graph tooling
+graphify-out/
+.codex/
+AGENTS.md

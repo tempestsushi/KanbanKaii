@@ -77,8 +77,15 @@ export function AuthPage() {
   const isSignup = mode === 'signup';
 
   return (
-    <main className="min-h-screen overflow-auto bg-violet-100 px-4 py-8 sm:px-6">
-      <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-5xl overflow-hidden rounded-2xl border border-violet-200 bg-white shadow-xl lg:grid-cols-[1.05fr_0.95fr]">
+    <main className="relative min-h-screen overflow-auto bg-violet-100 px-4 pb-8 pt-16 sm:px-6">
+      <a
+        href="/"
+        className="absolute left-4 top-5 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-violet-700 transition hover:bg-white/70 hover:text-violet-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 focus-visible:ring-offset-violet-100 sm:left-6"
+      >
+        <span aria-hidden="true">←</span>
+        Back to home
+      </a>
+      <div className="mx-auto grid min-h-[calc(100vh-6rem)] max-w-5xl overflow-hidden rounded-2xl border border-violet-200 bg-white shadow-xl lg:grid-cols-[1.05fr_0.95fr]">
         <section className="hidden flex-col justify-between bg-violet-600 p-10 text-white lg:flex">
           <div>
             <div className="mb-12 inline-flex rounded-lg bg-white/15 px-3 py-2 text-sm font-semibold">
