@@ -29,6 +29,9 @@ class FakeTicketRepository:
         self.created_ticket = None
         self.deleted_ticket = None
         self.ticket_update = None
+        self.organization_list = None
+        self.organization_update = None
+        self.organization_delete = None
 
     def create(self, ticket: TicketCreate) -> TicketResponse:
         self.created_ticket = ticket
@@ -56,6 +59,17 @@ class FakeTicketRepository:
         self.status_update = (ticket_id, owner_id, new_status)
         ticket = self.tickets[0]
         return ticket.model_copy(update={"status": new_status})
+
+    def list_for_organization(self, organization_id, ticket_status=None):
+        self.organization_list = (organization_id, ticket_status)
+        return self.tickets
+
+    def update_for_organization(self, organization_id, ticket_id, changes):
+        self.organization_update = (organization_id, ticket_id, changes)
+        return self.tickets[0].model_copy(update=changes.model_dump())
+
+    def delete_for_organization(self, organization_id, ticket_id):
+        self.organization_delete = (organization_id, ticket_id)
 
     def delete(self, ticket_id: UUID, owner_id: UUID) -> None:
         self.deleted_ticket = (ticket_id, owner_id)
@@ -167,6 +181,56 @@ class TicketsRouteTests(TestCase):
         self.assertEqual(response.json()["owner_id"], str(owner_id))
         self.assertEqual(repository.created_ticket.title, "Plan release")
         self.assertEqual(repository.created_ticket.source, "MANUAL")
+
+    def test_lists_organization_tickets(self) -> None:
+        organization_id = uuid4()
+        ticket = TicketResponse(
+            id=uuid4(), owner_id=uuid4(), scope="ORGANIZATION",
+            organization_id=organization_id, assignee_user_id=uuid4(),
+            title="Review release", description="Review the release checklist.",
+            priority="HIGH", status="PENDING", assignee="Noah", source="SLACK",
+        )
+        repository = FakeTicketRepository([ticket])
+        app.dependency_overrides[get_ticket_repository] = lambda: repository
+
+        response = client.get(
+            f"/api/tickets/organizations/{organization_id}",
+            params={"status": "PENDING"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()[0]["scope"], "ORGANIZATION")
+        self.assertEqual(repository.organization_list, (organization_id, "PENDING"))
+
+    def test_updates_organization_ticket(self) -> None:
+        organization_id = uuid4()
+        ticket = TicketResponse(
+            id=uuid4(), owner_id=uuid4(), scope="ORGANIZATION",
+            organization_id=organization_id, assignee_user_id=uuid4(),
+            title="Review release", description="Review the release checklist.",
+            priority="HIGH", status="PENDING", assignee="Noah", source="SLACK",
+        )
+        repository = FakeTicketRepository([ticket])
+        app.dependency_overrides[get_ticket_repository] = lambda: repository
+        response = client.patch(
+            f"/api/tickets/organizations/{organization_id}/{ticket.id}",
+            json={"title": "Review launch", "description": "Review launch readiness.",
+                  "priority": "MEDIUM", "status": "IN_PROGRESS", "assignee": "Noah"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["title"], "Review launch")
+        self.assertEqual(repository.organization_update[0:2], (organization_id, ticket.id))
+
+    def test_deletes_organization_ticket(self) -> None:
+        organization_id = uuid4()
+        ticket_id = uuid4()
+        repository = FakeTicketRepository([])
+        app.dependency_overrides[get_ticket_repository] = lambda: repository
+        response = client.delete(
+            f"/api/tickets/organizations/{organization_id}/{ticket_id}"
+        )
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(repository.organization_delete, (organization_id, ticket_id))
 
     def test_manual_creation_rejects_empty_description(self) -> None:
         app.dependency_overrides[get_ticket_repository] = lambda: (

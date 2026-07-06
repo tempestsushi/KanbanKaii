@@ -34,9 +34,10 @@ interface TicketModalProps {
   onClose: () => void;
   onSave: (values: TicketFormValues) => Promise<boolean>;
   onDelete: (id: string) => Promise<boolean>;
+  readOnly?: boolean;
 }
 
-export function TicketModal({ ticket, isOpen, defaultStatus, onClose, onSave, onDelete }: TicketModalProps) {
+export function TicketModal({ ticket, isOpen, defaultStatus, onClose, onSave, onDelete, readOnly = false }: TicketModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [assignee, setAssignee] = useState('');
@@ -81,38 +82,38 @@ export function TicketModal({ ticket, isOpen, defaultStatus, onClose, onSave, on
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-lg">
-        <DialogHeader><DialogTitle>{ticket ? 'Edit ticket' : 'Create ticket'}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{readOnly ? 'Ticket details' : ticket ? 'Edit ticket' : 'Create ticket'}</DialogTitle></DialogHeader>
         <div className="grid gap-4 py-3">
           <div className="grid gap-2">
             <Label htmlFor="ticket-title">Title</Label>
-            <Input id="ticket-title" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="What needs to be done?" />
+            <Input id="ticket-title" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="What needs to be done?" disabled={readOnly} />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="ticket-description">Description</Label>
-            <Textarea id="ticket-description" value={description} onChange={(event) => setDescription(event.target.value)} rows={4} placeholder="Add useful context and acceptance details" />
+            <Textarea id="ticket-description" value={description} onChange={(event) => setDescription(event.target.value)} rows={4} placeholder="Add useful context and acceptance details" disabled={readOnly} />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2">
               <Label htmlFor="ticket-assignee">Assignee</Label>
-              <Input id="ticket-assignee" value={assignee} onChange={(event) => setAssignee(event.target.value)} placeholder="Name" />
+              <Input id="ticket-assignee" value={assignee} onChange={(event) => setAssignee(event.target.value)} placeholder="Name" disabled={readOnly} />
             </div>
             <div className="grid gap-2">
               <Label>Priority</Label>
-              <Select value={priority} onValueChange={(value: TicketPriority) => setPriority(value)}>
+              <Select value={priority} onValueChange={(value: TicketPriority) => setPriority(value)} disabled={readOnly}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{TICKET_PRIORITIES.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="grid gap-2">
               <Label>Status</Label>
-              <Select value={status} onValueChange={(value: TicketStatus) => setStatus(value)}>
+              <Select value={status} onValueChange={(value: TicketStatus) => setStatus(value)} disabled={readOnly}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{TICKET_STATUSES.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="grid gap-2">
               <Label>Source</Label>
-              <Select value={source} onValueChange={(value: TicketSource) => setSource(value)}>
+              <Select value={source} onValueChange={(value: TicketSource) => setSource(value)} disabled={readOnly}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{TICKET_SOURCES.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent>
               </Select>
@@ -120,9 +121,9 @@ export function TicketModal({ ticket, isOpen, defaultStatus, onClose, onSave, on
           </div>
         </div>
         <DialogFooter className="gap-2 sm:gap-2">
-          {ticket && <Button variant="destructive" className="sm:mr-auto" disabled={isSaving || isDeleting} onClick={() => setDeleteConfirmationOpen(true)}><Trash2 className="mr-2 h-4 w-4" />Delete</Button>}
-          <Button variant="outline" disabled={isSaving || isDeleting} onClick={onClose}>Cancel</Button>
-          <Button disabled={!title.trim() || !description.trim() || isSaving || isDeleting} onClick={() => void submit()}>{isSaving ? (ticket ? 'Saving…' : 'Creating…') : ticket ? 'Save changes' : 'Create ticket'}</Button>
+          {ticket && !readOnly && <Button variant="destructive" className="sm:mr-auto" disabled={isSaving || isDeleting} onClick={() => setDeleteConfirmationOpen(true)}><Trash2 className="mr-2 h-4 w-4" />Delete</Button>}
+          <Button variant="outline" disabled={isSaving || isDeleting} onClick={onClose}>{readOnly ? 'Close' : 'Cancel'}</Button>
+          {!readOnly && <Button disabled={!title.trim() || !description.trim() || isSaving || isDeleting} onClick={() => void submit()}>{isSaving ? (ticket ? 'Saving…' : 'Creating…') : ticket ? 'Save changes' : 'Create ticket'}</Button>}
         </DialogFooter>
       </DialogContent>
 

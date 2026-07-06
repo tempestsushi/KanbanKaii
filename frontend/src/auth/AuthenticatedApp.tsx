@@ -9,6 +9,7 @@ const AnalyticsPage = lazy(() => import('@/pages/AnalyticsPage').then((module) =
 const ProfilePage = lazy(() => import('@/pages/ProfilePage').then((module) => ({ default: module.ProfilePage })));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage').then((module) => ({ default: module.SettingsPage })));
 const OrganizationPage = lazy(() => import('@/pages/OrganizationPage').then((module) => ({ default: module.OrganizationPage })));
+const OrganizationBoardPage = lazy(() => import('@/pages/OrganizationBoardPage').then((module) => ({ default: module.OrganizationBoardPage })));
 const JoinOrganizationPage = lazy(() => import('@/pages/JoinOrganizationPage').then((module) => ({ default: module.JoinOrganizationPage })));
 
 function PageLoadingScreen() {
@@ -49,6 +50,9 @@ export default function AuthenticatedApp() {
       break;
     case '/organization':
       page = <ProtectedRoute><OrganizationPage /></ProtectedRoute>;
+      break;
+    case '/organization-board':
+      page = <ProtectedRoute><OrganizationBoardPage /></ProtectedRoute>;
       break;
     default:
       window.location.replace('/');

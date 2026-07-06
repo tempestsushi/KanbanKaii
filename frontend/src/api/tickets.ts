@@ -128,6 +128,23 @@ export async function fetchTickets(
   return tickets.map(mapApiTicket);
 }
 
+export async function fetchOrganizationTickets(
+  organizationId: string,
+  options: FetchTicketsOptions = {},
+): Promise<Ticket[]> {
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+  if (!apiBaseUrl) throw new Error('Frontend API configuration is missing');
+
+  const url = new URL(`/api/tickets/organizations/${organizationId}`, apiBaseUrl);
+  if (options.status) url.searchParams.set('status', options.status);
+  const response = await fetch(url, {
+    signal: options.signal,
+    headers: await authenticatedHeaders(),
+  });
+  if (!response.ok) throw new Error(`Could not load organization tickets (${response.status})`);
+  return ((await response.json()) as ApiTicket[]).map(mapApiTicket);
+}
+
 export async function updateTicketStatus(
   ticketId: string,
   status: TicketStatus,
@@ -177,6 +194,31 @@ export async function updateTicket(
   return mapApiTicket((await response.json()) as ApiTicket);
 }
 
+export async function updateOrganizationTicket(
+  organizationId: string,
+  ticketId: string,
+  values: TicketFormValues,
+): Promise<Ticket> {
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+  if (!apiBaseUrl) throw new Error('Frontend API configuration is missing');
+  const response = await fetch(
+    new URL(`/api/tickets/organizations/${organizationId}/${ticketId}`, apiBaseUrl),
+    {
+      method: 'PATCH',
+      headers: await authenticatedHeaders(true),
+      body: JSON.stringify({
+        title: values.title,
+        description: values.description,
+        priority: apiPriorityMap[values.priority],
+        status: apiStatusMap[values.status],
+        assignee: values.assignee,
+      }),
+    },
+  );
+  if (!response.ok) throw new Error(`Could not update organization ticket (${response.status})`);
+  return mapApiTicket((await response.json()) as ApiTicket);
+}
+
 export async function createTicket(values: TicketFormValues): Promise<Ticket> {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
@@ -218,4 +260,17 @@ export async function deleteTicket(ticketId: string): Promise<void> {
   if (!response.ok) {
     throw new Error(`Could not delete ticket (${response.status})`);
   }
+}
+
+export async function deleteOrganizationTicket(
+  organizationId: string,
+  ticketId: string,
+): Promise<void> {
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+  if (!apiBaseUrl) throw new Error('Frontend API configuration is missing');
+  const response = await fetch(
+    new URL(`/api/tickets/organizations/${organizationId}/${ticketId}`, apiBaseUrl),
+    { method: 'DELETE', headers: await authenticatedHeaders() },
+  );
+  if (!response.ok) throw new Error(`Could not delete organization ticket (${response.status})`);
 }

@@ -104,6 +104,72 @@ async def list_tickets(
         ) from error
 
 
+@router.get("/organizations/{organization_id}", response_model=list[TicketResponse])
+async def list_organization_tickets(
+    organization_id: UUID,
+    _: Annotated[UUID, Depends(get_current_user_id)],
+    ticket_repository: Annotated[TicketRepository, Depends(get_ticket_repository)],
+    ticket_status: Annotated[TicketStatus | None, Query(alias="status")] = None,
+) -> list[TicketResponse]:
+    try:
+        return await run_in_threadpool(
+            ticket_repository.list_for_organization,
+            organization_id,
+            ticket_status,
+        )
+    except TicketPermissionError as error:
+        raise HTTPException(status_code=403, detail=str(error)) from error
+    except TicketRepositoryError as error:
+        raise HTTPException(status_code=502, detail=str(error)) from error
+
+
+@router.patch(
+    "/organizations/{organization_id}/{ticket_id}",
+    response_model=TicketResponse,
+)
+async def update_organization_ticket(
+    organization_id: UUID,
+    ticket_id: UUID,
+    update: TicketUpdate,
+    _: Annotated[UUID, Depends(get_current_user_id)],
+    ticket_repository: Annotated[TicketRepository, Depends(get_ticket_repository)],
+) -> TicketResponse:
+    try:
+        return await run_in_threadpool(
+            ticket_repository.update_for_organization,
+            organization_id,
+            ticket_id,
+            update,
+        )
+    except TicketPermissionError as error:
+        raise HTTPException(status_code=403, detail=str(error)) from error
+    except TicketRepositoryError as error:
+        raise HTTPException(status_code=502, detail=str(error)) from error
+
+
+@router.delete(
+    "/organizations/{organization_id}/{ticket_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_organization_ticket(
+    organization_id: UUID,
+    ticket_id: UUID,
+    _: Annotated[UUID, Depends(get_current_user_id)],
+    ticket_repository: Annotated[TicketRepository, Depends(get_ticket_repository)],
+) -> Response:
+    try:
+        await run_in_threadpool(
+            ticket_repository.delete_for_organization,
+            organization_id,
+            ticket_id,
+        )
+        return Response(status_code=204)
+    except TicketPermissionError as error:
+        raise HTTPException(status_code=403, detail=str(error)) from error
+    except TicketRepositoryError as error:
+        raise HTTPException(status_code=502, detail=str(error)) from error
+
+
 @router.patch("/{ticket_id}/status", response_model=TicketResponse)
 async def update_ticket_status(
     ticket_id: UUID,

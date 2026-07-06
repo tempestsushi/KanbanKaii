@@ -83,6 +83,121 @@ class TicketRepository:
                 "Supabase returned an invalid ticket record"
             ) from exc
 
+    def list_for_organization(
+        self,
+        organization_id: UUID,
+        ticket_status: TicketStatus | None = None,
+    ) -> list[TicketResponse]:
+        """Return organization-scoped tickets visible through the user's RLS policy."""
+        try:
+            query = (
+                self.client.table("tickets")
+                .select("*")
+                .eq("organization_id", str(organization_id))
+                .eq("scope", "ORGANIZATION")
+            )
+            if ticket_status is not None:
+                query = query.eq("status", ticket_status)
+            result = query.order("created_at", desc=True).execute()
+        except APIError as exc:
+            if exc.code == "42501":
+                raise TicketPermissionError(
+                    "Organization ticket access is not permitted"
+                ) from exc
+            raise TicketRepositoryError(
+                "Supabase could not load organization tickets"
+            ) from exc
+        except Exception as exc:
+            raise TicketRepositoryError(
+                "Supabase could not load organization tickets"
+            ) from exc
+
+        rows: Any = result.data
+        if not isinstance(rows, list):
+            raise TicketRepositoryError("Supabase returned an invalid ticket list")
+        try:
+            return [TicketResponse.model_validate_json(json.dumps(row)) for row in rows]
+        except ValidationError as exc:
+            raise TicketRepositoryError(
+                "Supabase returned an invalid ticket record"
+            ) from exc
+
+    def update_for_organization(
+        self,
+        organization_id: UUID,
+        ticket_id: UUID,
+        changes: TicketUpdate,
+    ) -> TicketResponse:
+        """Update an organization ticket when RLS grants lead-level management."""
+        try:
+            result = (
+                self.client.table("tickets")
+                .update(changes.model_dump(mode="json"))
+                .eq("id", str(ticket_id))
+                .eq("organization_id", str(organization_id))
+                .eq("scope", "ORGANIZATION")
+                .execute()
+            )
+        except APIError as exc:
+            if exc.code == "42501":
+                raise TicketPermissionError(
+                    "Organization ticket management is not permitted"
+                ) from exc
+            raise TicketRepositoryError(
+                "Supabase could not update the organization ticket"
+            ) from exc
+        except Exception as exc:
+            raise TicketRepositoryError(
+                "Supabase could not update the organization ticket"
+            ) from exc
+        return self._single_ticket(
+            result.data,
+            "Organization ticket was not found or management is not permitted",
+        )
+
+    def delete_for_organization(
+        self,
+        organization_id: UUID,
+        ticket_id: UUID,
+    ) -> None:
+        """Delete an organization ticket when RLS grants lead-level management."""
+        try:
+            result = (
+                self.client.table("tickets")
+                .delete()
+                .eq("id", str(ticket_id))
+                .eq("organization_id", str(organization_id))
+                .eq("scope", "ORGANIZATION")
+                .execute()
+            )
+        except APIError as exc:
+            if exc.code == "42501":
+                raise TicketPermissionError(
+                    "Organization ticket management is not permitted"
+                ) from exc
+            raise TicketRepositoryError(
+                "Supabase could not delete the organization ticket"
+            ) from exc
+        except Exception as exc:
+            raise TicketRepositoryError(
+                "Supabase could not delete the organization ticket"
+            ) from exc
+        if not isinstance(result.data, list) or len(result.data) != 1:
+            raise TicketPermissionError(
+                "Organization ticket was not found or management is not permitted"
+            )
+
+    @staticmethod
+    def _single_ticket(rows: Any, empty_message: str) -> TicketResponse:
+        if not isinstance(rows, list) or len(rows) != 1:
+            raise TicketPermissionError(empty_message)
+        try:
+            return TicketResponse.model_validate_json(json.dumps(rows[0]))
+        except ValidationError as exc:
+            raise TicketRepositoryError(
+                "Supabase returned an invalid ticket record"
+            ) from exc
+
     def update_status(
         self,
         ticket_id: UUID,

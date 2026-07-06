@@ -4,7 +4,7 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { cn } from '@/lib/utils';
 import { TicketCard } from './TicketCard';
 import type { Ticket, TicketStatus } from '@/types/ticket';
-import { MoreVertical, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 
 interface KanbanColumnProps {
   id: TicketStatus;
@@ -12,9 +12,11 @@ interface KanbanColumnProps {
   tickets: Ticket[];
   onEdit: (ticket: Ticket) => void;
   onAdd: (status: TicketStatus) => void;
+  canAdd?: boolean;
+  canDragTicket?: (ticket: Ticket) => boolean;
 }
 
-export function KanbanColumn({ id, title, tickets, onEdit, onAdd }: KanbanColumnProps) {
+export function KanbanColumn({ id, title, tickets, onEdit, onAdd, canAdd = true, canDragTicket = () => true }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id });
   const [visibleCount, setVisibleCount] = useState(3);
   const visibleTickets = tickets.slice(0, visibleCount);
@@ -53,16 +55,13 @@ export function KanbanColumn({ id, title, tickets, onEdit, onAdd }: KanbanColumn
           <h3 className="text-xs font-semibold text-slate-700">{title}</h3>
           <span className="text-[11px] text-slate-400">{tickets.length}</span>
         </div>
-        <div className="flex items-center text-slate-400">
-          <button aria-label={`Add ticket to ${title}`} onClick={() => onAdd(title)} className="rounded p-1 hover:bg-white hover:text-violet-600"><Plus className="h-3.5 w-3.5" /></button>
-          <button aria-label={`${title} options`} className="rounded p-1 hover:bg-white hover:text-slate-700"><MoreVertical className="h-3.5 w-3.5" /></button>
-        </div>
+        {canAdd && <button aria-label={`Add ticket to ${title}`} onClick={() => onAdd(title)} className="rounded p-1 text-slate-400 hover:bg-white hover:text-violet-600"><Plus className="h-3.5 w-3.5" /></button>}
       </div>
 
       <div className="min-h-[240px] flex-1 space-y-2.5">
         <SortableContext items={visibleTickets.map((t) => t.id)} strategy={verticalListSortingStrategy}>
           {visibleTickets.map((ticket) => (
-            <TicketCard key={ticket.id} ticket={ticket} onEdit={onEdit} />
+            <TicketCard key={ticket.id} ticket={ticket} onEdit={onEdit} draggable={canDragTicket(ticket)} />
           ))}
         </SortableContext>
         {hasMoreTickets && (
@@ -75,7 +74,7 @@ export function KanbanColumn({ id, title, tickets, onEdit, onAdd }: KanbanColumn
           </button>
         )}
       </div>
-      <button onClick={() => onAdd(title)} className="mt-2 flex items-center gap-1 py-1 text-[11px] font-medium text-slate-400 hover:text-violet-600"><Plus className="h-3.5 w-3.5" /> New</button>
+      {canAdd && <button onClick={() => onAdd(title)} className="mt-2 flex items-center gap-1 py-1 text-[11px] font-medium text-slate-400 hover:text-violet-600"><Plus className="h-3.5 w-3.5" /> New</button>}
     </div>
   );
 }

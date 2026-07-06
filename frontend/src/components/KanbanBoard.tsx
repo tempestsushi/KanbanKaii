@@ -15,10 +15,13 @@ import { toast } from 'sonner';
 import { ArrowDownUp, ListFilter, Plus, Search } from 'lucide-react';
 import {
   createTicket,
+  deleteOrganizationTicket,
   deleteTicket as deleteStoredTicket,
   fetchTickets,
+  fetchOrganizationTickets,
   mapApiTicket,
   updateTicket,
+  updateOrganizationTicket,
   updateTicketStatus,
   type ApiTicket,
 } from '@/api/tickets';
@@ -37,6 +40,7 @@ import { TicketCard } from './TicketCard';
 import { getSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/auth/AuthContext';
 import { notificationSettingsFromUser } from '@/api/settings';
+import type { OrganizationRole } from '@/api/organizations';
 
 const TicketModal = lazy(() => import('./TicketModal').then((module) => ({ default: module.TicketModal })));
 
@@ -62,7 +66,12 @@ const priorityOrder: Record<TicketPriority, number> = {
   Low: 2,
 };
 
-export function KanbanBoard() {
+interface KanbanBoardProps {
+  organizationId?: string;
+  organizationRole?: OrganizationRole;
+}
+
+export function KanbanBoard({ organizationId, organizationRole }: KanbanBoardProps) {
   const { user } = useAuth();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -79,6 +88,13 @@ export function KanbanBoard() {
   const controlsRef = useRef<HTMLDivElement>(null);
   const ticketsRef = useRef<Ticket[]>([]);
   const notificationSettings = useMemo(() => notificationSettingsFromUser(user), [user]);
+  const isOrganizationBoard = Boolean(organizationId);
+  const canManageOrganization = organizationRole === 'OWNER' || organizationRole === 'TEAM_LEAD';
+  const canCreate = !isOrganizationBoard;
+  const canMoveTicket = useCallback(
+    (ticket: Ticket) => !isOrganizationBoard || canManageOrganization || ticket.assigneeUserId === user?.id,
+    [canManageOrganization, isOrganizationBoard, user?.id],
+  );
 
   const activeFilterCount = Number(priorityFilter !== 'ALL') + Number(sourceFilter !== 'ALL');
 
@@ -124,7 +140,11 @@ export function KanbanBoard() {
     setIsLoading(true);
     setLoadError(null);
     try {
-      setTickets(await fetchTickets({ signal }));
+      setTickets(
+        organizationId
+          ? await fetchOrganizationTickets(organizationId, { signal })
+          : await fetchTickets({ signal }),
+      );
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') return;
       if (error instanceof TypeError) {
@@ -135,7 +155,7 @@ export function KanbanBoard() {
     } finally {
       if (!signal?.aborted) setIsLoading(false);
     }
-  }, []);
+  }, [organizationId]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -151,18 +171,22 @@ export function KanbanBoard() {
     if (!user) return undefined;
 
     const supabase = getSupabaseClient();
+    const realtimeFilter = organizationId
+      ? `organization_id=eq.${organizationId}`
+      : `owner_id=eq.${user.id}`;
     const channel = supabase
-      .channel(`tickets:${user.id}`)
+      .channel(organizationId ? `organization-tickets:${organizationId}` : `tickets:${user.id}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'tickets',
-          filter: `owner_id=eq.${user.id}`,
+          filter: realtimeFilter,
         },
         (payload) => {
           const incoming = mapApiTicket(payload.new as ApiTicket);
+          if (isOrganizationBoard && incoming.scope !== 'ORGANIZATION') return;
           const nextTickets = mergeTicket(ticketsRef.current, incoming);
           ticketsRef.current = nextTickets;
           setTickets(nextTickets);
@@ -177,10 +201,11 @@ export function KanbanBoard() {
           event: 'UPDATE',
           schema: 'public',
           table: 'tickets',
-          filter: `owner_id=eq.${user.id}`,
+          filter: realtimeFilter,
         },
         (payload) => {
           const incoming = mapApiTicket(payload.new as ApiTicket);
+          if (isOrganizationBoard && incoming.scope !== 'ORGANIZATION') return;
           const previous = ticketsRef.current.find((ticket) => ticket.id === incoming.id);
           const nextTickets = mergeTicket(ticketsRef.current, incoming);
           ticketsRef.current = nextTickets;
@@ -199,7 +224,7 @@ export function KanbanBoard() {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [notificationSettings.newTickets, notificationSettings.statusChanges, user]);
+  }, [isOrganizationBoard, notificationSettings.newTickets, notificationSettings.statusChanges, organizationId, user]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -219,7 +244,7 @@ export function KanbanBoard() {
     if (!over) return;
     const nextStatus = statusFromDropTarget(String(over.id));
     const current = tickets.find((ticket) => ticket.id === active.id);
-    if (!current || !nextStatus || current.status === nextStatus) return;
+    if (!current || !nextStatus || current.status === nextStatus || !canMoveTicket(current)) return;
 
     setTickets((items) =>
       items.map((ticket) => ticket.id === active.id ? { ...ticket, status: nextStatus } : ticket),
@@ -245,6 +270,7 @@ export function KanbanBoard() {
   };
 
   const openCreator = (status: TicketStatus) => {
+    if (!canCreate) return;
     setEditingTicket(null);
     setDefaultStatus(status);
     setModalOpen(true);
@@ -253,7 +279,9 @@ export function KanbanBoard() {
   const saveTicket = async (values: TicketFormValues): Promise<boolean> => {
     if (editingTicket) {
       try {
-        const updatedTicket = await updateTicket(editingTicket.id, values);
+        const updatedTicket = organizationId
+          ? await updateOrganizationTicket(organizationId, editingTicket.id, values)
+          : await updateTicket(editingTicket.id, values);
         setTickets((items) =>
           items.map((item) => item.id === updatedTicket.id ? updatedTicket : item),
         );
@@ -266,6 +294,7 @@ export function KanbanBoard() {
       }
     }
 
+    if (organizationId) return false;
     try {
       const createdTicket = await createTicket(values);
       setTickets((items) => mergeTicket(items, createdTicket));
@@ -280,7 +309,8 @@ export function KanbanBoard() {
 
   const deleteTicket = async (id: string): Promise<boolean> => {
     try {
-      await deleteStoredTicket(id);
+      if (organizationId) await deleteOrganizationTicket(organizationId, id);
+      else await deleteStoredTicket(id);
       setTickets((items) => items.filter((ticket) => ticket.id !== id));
       setModalOpen(false);
       toast.success('Ticket deleted');
@@ -304,9 +334,9 @@ export function KanbanBoard() {
           />
         </label>
         <div ref={controlsRef} className="relative flex items-center gap-1 sm:gap-2">
-          <button type="button" onClick={() => openCreator('Pending')} className="flex items-center gap-1.5 rounded border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-medium text-slate-700 shadow-sm hover:border-violet-300 hover:text-violet-600">
+          {canCreate && <button type="button" onClick={() => openCreator('Pending')} className="flex items-center gap-1.5 rounded border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-medium text-slate-700 shadow-sm hover:border-violet-300 hover:text-violet-600">
             <Plus className="h-3.5 w-3.5" /><span className="hidden sm:inline">New ticket</span>
-          </button>
+          </button>}
           <button
             type="button"
             aria-expanded={openMenu === 'filter'}
@@ -420,11 +450,13 @@ export function KanbanBoard() {
               tickets={visibleTickets.filter((ticket) => ticket.status === status)}
               onEdit={openEditor}
               onAdd={openCreator}
+              canAdd={canCreate}
+              canDragTicket={canMoveTicket}
             />
           ))}
         </div>
         <DragOverlay dropAnimation={{ duration: 180, easing: 'ease-out' }}>
-          {activeTicket ? <TicketCard ticket={activeTicket} onEdit={() => undefined} overlay /> : null}
+          {activeTicket ? <TicketCard ticket={activeTicket} onEdit={() => undefined} overlay draggable={false} /> : null}
         </DragOverlay>
       </DndContext>
 
@@ -437,6 +469,7 @@ export function KanbanBoard() {
             onSave={saveTicket}
             onDelete={deleteTicket}
             defaultStatus={defaultStatus}
+            readOnly={isOrganizationBoard && !canManageOrganization}
           />
         </Suspense>
       )}

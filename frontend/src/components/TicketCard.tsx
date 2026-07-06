@@ -8,6 +8,7 @@ interface TicketCardProps {
   ticket: Ticket;
   onEdit: (ticket: Ticket) => void;
   overlay?: boolean;
+  draggable?: boolean;
 }
 
 const priorityConfig = {
@@ -25,7 +26,7 @@ const priorityConfig = {
   },
 };
 
-export function TicketCard({ ticket, onEdit, overlay = false }: TicketCardProps) {
+export function TicketCard({ ticket, onEdit, overlay = false, draggable = true }: TicketCardProps) {
   const {
     attributes,
     listeners,
@@ -33,7 +34,7 @@ export function TicketCard({ ticket, onEdit, overlay = false }: TicketCardProps)
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: ticket.id, disabled: overlay });
+  } = useSortable({ id: ticket.id, disabled: overlay || !draggable });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -58,14 +59,14 @@ export function TicketCard({ ticket, onEdit, overlay = false }: TicketCardProps)
         <h4 className="pr-6 text-xs font-semibold leading-snug text-slate-800">
           {ticket.title}
         </h4>
-        <button
+        {draggable && <button
           {...attributes}
           {...listeners}
           onClick={(e) => e.stopPropagation()}
           className="absolute right-2.5 top-2.5 cursor-grab rounded p-0.5 text-slate-400 opacity-0 transition-opacity hover:bg-slate-100 hover:text-slate-700 group-hover:opacity-100 active:cursor-grabbing"
         >
           <GripVertical className="h-4 w-4" />
-        </button>
+        </button>}
       </div>
 
       {ticket.description && (
