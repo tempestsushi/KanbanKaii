@@ -32,7 +32,6 @@ class IntegrationCleanupServiceTests(TestCase):
             "ignored_deleted": 2,
             "completed_deleted": 3,
             "failed_deleted": 4,
-            "oauth_states_deleted": 5,
         }
         supabase = FakeSupabase(expected)
 

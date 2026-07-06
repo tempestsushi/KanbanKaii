@@ -1,24 +1,6 @@
 alter table public.integrations
 add column if not exists metadata jsonb not null default '{}'::jsonb;
 
-create or replace function public.consume_oauth_state(p_state_hash text)
-returns table(owner_id uuid)
-language sql
-security definer
-set search_path = public
-as $$
-    update public.oauth_states
-    set used_at = now()
-    where state_hash = p_state_hash
-      and provider = 'SLACK'
-      and used_at is null
-      and expires_at > now()
-    returning oauth_states.owner_id;
-$$;
-
-revoke all on function public.consume_oauth_state(text) from public, anon, authenticated;
-grant execute on function public.consume_oauth_state(text) to service_role;
-
 create or replace function public.upsert_slack_integration(
     p_owner_id uuid,
     p_team_id text,

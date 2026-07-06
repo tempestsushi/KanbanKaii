@@ -9,7 +9,6 @@ declare
     ignored_deliveries integer := 0;
     completed_deliveries integer := 0;
     failed_deliveries integer := 0;
-    oauth_states_deleted integer := 0;
 begin
     -- A job still active after 24 hours cannot be a live ARQ/Ollama request.
     -- Mark it failed first so active statuses are never deleted directly.
@@ -39,18 +38,11 @@ begin
       and processed_at < now() - interval '90 days';
     get diagnostics failed_deliveries = row_count;
 
-    -- Slack OAuth state now lives in Redis. This only removes historical rows
-    -- left by the previous Supabase-backed implementation.
-    delete from public.oauth_states
-    where used_at is not null or expires_at < now();
-    get diagnostics oauth_states_deleted = row_count;
-
     return jsonb_build_object(
         'stale_marked_failed', stale_deliveries,
         'ignored_deleted', ignored_deliveries,
         'completed_deleted', completed_deliveries,
-        'failed_deleted', failed_deliveries,
-        'oauth_states_deleted', oauth_states_deleted
+        'failed_deleted', failed_deliveries
     );
 end;
 $$;
