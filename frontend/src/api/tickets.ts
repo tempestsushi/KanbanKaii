@@ -13,13 +13,22 @@ type ApiStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
 export interface ApiTicket {
   id: string;
   owner_id: string;
+  scope: 'PRIVATE' | 'PERSONAL_ASSIGNMENT' | 'ORGANIZATION';
+  organization_id: string | null;
+  created_by: string | null;
+  assigned_by_user_id: string | null;
+  assignee_user_id: string | null;
   title: string;
   description: string;
   priority: ApiPriority;
   status: ApiStatus;
   assignee: string;
   source: string;
+  requested_by_name: string | null;
+  source_message_state: 'ACTIVE' | 'DELETED';
+  source_message_deleted_at: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 const priorityMap: Record<ApiPriority, TicketPriority> = {
@@ -61,7 +70,17 @@ export function mapApiTicket(ticket: ApiTicket): Ticket {
     status: statusMap[ticket.status],
     assignee: ticket.assignee,
     source: mapSource(ticket.source),
+    ownerId: ticket.owner_id,
+    scope: ticket.scope,
+    organizationId: ticket.organization_id ?? undefined,
+    createdBy: ticket.created_by ?? undefined,
+    assignedByUserId: ticket.assigned_by_user_id ?? undefined,
+    assigneeUserId: ticket.assignee_user_id ?? undefined,
+    requestedByName: ticket.requested_by_name ?? undefined,
+    sourceMessageState: ticket.source_message_state,
+    sourceMessageDeletedAt: ticket.source_message_deleted_at ?? undefined,
     createdAt: ticket.created_at,
+    updatedAt: ticket.updated_at,
   };
 }
 

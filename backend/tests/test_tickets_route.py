@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 
 from app.auth.dependencies import get_current_user_id
 from app.database.ticket_repository import TicketRepositoryError
+from app.database.ticket_repository import TicketPermissionError
 from app.main import app
 from app.routes.tickets import get_ticket_repository
 from app.schemas.ticket import (
@@ -86,7 +87,9 @@ class MissingTicketRepository:
         owner_id: UUID,
         new_status: TicketStatus,
     ) -> TicketResponse:
-        raise TicketRepositoryError("Ticket was not found for this owner")
+        raise TicketRepositoryError(
+            "Ticket was not found or status update is not permitted"
+        )
 
     def delete(self, ticket_id: UUID, owner_id: UUID) -> None:
         raise TicketRepositoryError("Ticket was not found for this owner")
@@ -98,6 +101,16 @@ class MissingTicketRepository:
         changes: TicketUpdate,
     ) -> TicketResponse:
         raise TicketRepositoryError("Ticket was not found for this owner")
+
+
+class ForbiddenStatusTicketRepository:
+    def update_status(
+        self,
+        ticket_id: UUID,
+        owner_id: UUID,
+        new_status: TicketStatus,
+    ) -> TicketResponse:
+        raise TicketPermissionError("Ticket status update is not permitted")
 
 
 class TicketsRouteTests(TestCase):
@@ -246,7 +259,23 @@ class TicketsRouteTests(TestCase):
         self.assertEqual(response.status_code, 404)
         self.assertEqual(
             response.json(),
-            {"detail": "Ticket was not found for this owner"},
+            {"detail": "Ticket was not found or status update is not permitted"},
+        )
+
+    def test_status_update_returns_403_when_rls_denies_user(self) -> None:
+        app.dependency_overrides[get_ticket_repository] = (
+            ForbiddenStatusTicketRepository
+        )
+
+        response = client.patch(
+            f"/api/tickets/{uuid4()}/status",
+            json={"status": "COMPLETED"},
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(
+            response.json(),
+            {"detail": "Ticket status update is not permitted"},
         )
 
     def test_updates_complete_ticket_details(self) -> None:

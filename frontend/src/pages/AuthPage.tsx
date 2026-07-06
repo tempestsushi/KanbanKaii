@@ -3,10 +3,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { getSupabaseClient } from '@/lib/supabase';
+import { safeAuthRedirect } from '@/auth/redirect';
 
 type AuthMode = 'login' | 'signup' | 'forgot';
 
 export function AuthPage() {
+  const successRedirect = safeAuthRedirect();
   const [mode, setMode] = useState<AuthMode>(() =>
     new URLSearchParams(window.location.search).get('mode') === 'signup' ? 'signup' : 'login',
   );
@@ -61,7 +63,7 @@ export function AuthPage() {
         if (signUpError) throw signUpError;
 
         if (data.session) {
-          window.location.assign('/dashboard');
+          window.location.assign(successRedirect);
           return;
         }
 
@@ -74,7 +76,7 @@ export function AuthPage() {
         password,
       });
       if (signInError) throw signInError;
-      window.location.assign('/dashboard');
+      window.location.assign(successRedirect);
     } catch (authError) {
       setError(
         authError instanceof Error

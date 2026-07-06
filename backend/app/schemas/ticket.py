@@ -2,12 +2,14 @@ from datetime import datetime, timezone
 from typing import Literal
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.schemas.triage import AIAnalysisResult, Priority
 
 
 TicketStatus = Literal["PENDING", "IN_PROGRESS", "COMPLETED"]
+TicketScope = Literal["PRIVATE", "PERSONAL_ASSIGNMENT", "ORGANIZATION"]
+SourceMessageState = Literal["ACTIVE", "DELETED"]
 
 
 class ManualTicketCreate(BaseModel):
@@ -28,12 +30,42 @@ class TicketCreate(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, str_strip_whitespace=True)
 
     owner_id: UUID
+    scope: TicketScope = "PRIVATE"
+    organization_id: UUID | None = None
+    created_by: UUID | None = None
+    assigned_by_user_id: UUID | None = None
+    assignee_user_id: UUID | None = None
     title: str = Field(min_length=1, max_length=200)
     description: str = Field(min_length=1, max_length=5_000)
     priority: Priority
     status: TicketStatus = "PENDING"
     assignee: str = Field(min_length=1, max_length=100)
     source: str = Field(min_length=1, max_length=50)
+    requested_by_name: str | None = Field(default=None, min_length=1, max_length=100)
+    source_team_id: str | None = Field(default=None, min_length=1, max_length=255)
+    source_channel_id: str | None = Field(default=None, min_length=1, max_length=255)
+    source_message_ts: str | None = Field(default=None, min_length=1, max_length=255)
+    source_message_state: SourceMessageState = "ACTIVE"
+    source_message_deleted_at: datetime | None = None
+
+    @model_validator(mode="after")
+    def validate_scope_relationships(self) -> "TicketCreate":
+        if self.scope == "PRIVATE":
+            if self.organization_id is not None:
+                raise ValueError("Private tickets cannot belong to an organization")
+            if self.created_by is None:
+                self.created_by = self.owner_id
+            if self.assignee_user_id is None:
+                self.assignee_user_id = self.owner_id
+        elif self.organization_id is None:
+            raise ValueError("Assigned tickets must belong to an organization")
+
+        if self.source_message_state == "ACTIVE":
+            if self.source_message_deleted_at is not None:
+                raise ValueError("Active source messages cannot have a deletion time")
+        elif self.source_message_deleted_at is None:
+            raise ValueError("Deleted source messages require a deletion time")
+        return self
 
 
 class TicketResponse(TicketCreate):
@@ -41,6 +73,9 @@ class TicketResponse(TicketCreate):
 
     id: UUID = Field(default_factory=uuid4)
     created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
+    updated_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc)
     )
 

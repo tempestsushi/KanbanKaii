@@ -1,9 +1,10 @@
-import { BarChart3, Home } from 'lucide-react';
+import { BarChart3, Building2, Home } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navigation = [
   { label: 'Home', href: '/dashboard', icon: Home },
   { label: 'Analytics', href: '/analytics', icon: BarChart3 },
+  { label: 'Organization', href: '/organization', icon: Building2 },
 ];
 
 export function AppSidebar() {

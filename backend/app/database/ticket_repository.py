@@ -3,6 +3,7 @@ from typing import Any
 from uuid import UUID
 
 from pydantic import ValidationError
+from postgrest.exceptions import APIError
 from supabase import Client
 
 from app.database.supabase_client import get_supabase_admin_client
@@ -16,6 +17,10 @@ from app.schemas.ticket import (
 
 class TicketRepositoryError(RuntimeError):
     """Raised when a ticket cannot be stored or read back safely."""
+
+
+class TicketPermissionError(TicketRepositoryError):
+    """Raised when RLS or a guarded database function denies an operation."""
 
 
 class TicketRepository:
@@ -84,15 +89,26 @@ class TicketRepository:
         owner_id: UUID,
         new_status: TicketStatus,
     ) -> TicketResponse:
-        """Update a ticket status only when it belongs to the given owner."""
+        """Use the RLS-aware status function for an authorized assignee."""
         try:
             result = (
-                self.client.table("tickets")
-                .update({"status": new_status})
-                .eq("id", str(ticket_id))
-                .eq("owner_id", str(owner_id))
+                self.client.rpc(
+                    "update_assigned_ticket_status",
+                    {
+                        "p_ticket_id": str(ticket_id),
+                        "p_status": new_status,
+                    },
+                )
                 .execute()
             )
+        except APIError as exc:
+            if exc.code == "42501":
+                raise TicketPermissionError(
+                    "Ticket status update is not permitted"
+                ) from exc
+            raise TicketRepositoryError(
+                "Supabase could not update the ticket status"
+            ) from exc
         except Exception as exc:
             raise TicketRepositoryError(
                 "Supabase could not update the ticket status"
@@ -100,7 +116,9 @@ class TicketRepository:
 
         rows: Any = result.data
         if not isinstance(rows, list) or len(rows) != 1:
-            raise TicketRepositoryError("Ticket was not found for this owner")
+            raise TicketRepositoryError(
+                "Ticket was not found or status update is not permitted"
+            )
 
         try:
             return TicketResponse.model_validate_json(json.dumps(rows[0]))

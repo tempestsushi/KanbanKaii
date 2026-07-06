@@ -44,8 +44,9 @@ class SchemaTests(TestCase):
             )
 
     def test_ticket_create_defaults_to_pending(self) -> None:
+        owner_id = uuid4()
         ticket = TicketCreate(
-            owner_id=uuid4(),
+            owner_id=owner_id,
             title="Fix checkout",
             description="Resolve the checkout failure.",
             priority="HIGH",
@@ -54,6 +55,22 @@ class SchemaTests(TestCase):
         )
 
         self.assertEqual(ticket.status, "PENDING")
+        self.assertEqual(ticket.scope, "PRIVATE")
+        self.assertEqual(ticket.created_by, owner_id)
+        self.assertEqual(ticket.assignee_user_id, owner_id)
+        self.assertEqual(ticket.source_message_state, "ACTIVE")
+
+    def test_assigned_ticket_requires_an_organization(self) -> None:
+        with self.assertRaises(ValidationError):
+            TicketCreate(
+                owner_id=uuid4(),
+                scope="ORGANIZATION",
+                title="Fix checkout",
+                description="Resolve the checkout failure.",
+                priority="HIGH",
+                assignee="Noah",
+                source="SLACK",
+            )
 
     def test_ticket_response_generates_identity_and_timestamp(self) -> None:
         ticket = TicketResponse(

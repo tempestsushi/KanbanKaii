@@ -8,6 +8,8 @@ const DashboardPage = lazy(() => import('@/pages/DashboardPage').then((module) =
 const AnalyticsPage = lazy(() => import('@/pages/AnalyticsPage').then((module) => ({ default: module.AnalyticsPage })));
 const ProfilePage = lazy(() => import('@/pages/ProfilePage').then((module) => ({ default: module.ProfilePage })));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage').then((module) => ({ default: module.SettingsPage })));
+const OrganizationPage = lazy(() => import('@/pages/OrganizationPage').then((module) => ({ default: module.OrganizationPage })));
+const JoinOrganizationPage = lazy(() => import('@/pages/JoinOrganizationPage').then((module) => ({ default: module.JoinOrganizationPage })));
 
 function PageLoadingScreen() {
   return (
@@ -24,7 +26,9 @@ export default function AuthenticatedApp() {
   const pathname = window.location.pathname;
   let page;
 
-  switch (pathname) {
+  if (pathname.startsWith('/join/')) {
+    page = <JoinOrganizationPage />;
+  } else switch (pathname) {
     case '/auth':
       page = <PublicOnlyRoute><AuthPage /></PublicOnlyRoute>;
       break;
@@ -42,6 +46,9 @@ export default function AuthenticatedApp() {
       break;
     case '/settings':
       page = <ProtectedRoute><SettingsPage /></ProtectedRoute>;
+      break;
+    case '/organization':
+      page = <ProtectedRoute><OrganizationPage /></ProtectedRoute>;
       break;
     default:
       window.location.replace('/');

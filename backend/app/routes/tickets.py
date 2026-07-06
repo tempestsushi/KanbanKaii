@@ -2,13 +2,18 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi.security import HTTPAuthorizationCredentials
 from starlette.concurrency import run_in_threadpool
 
-from app.database.supabase_client import SupabaseConfigurationError
-from app.auth.dependencies import get_current_user_id
+from app.database.supabase_client import (
+    SupabaseConfigurationError,
+    get_supabase_user_client,
+)
+from app.auth.dependencies import bearer_scheme, get_current_user_id
 from app.database.ticket_repository import (
     TicketRepository,
     TicketRepositoryError,
+    TicketPermissionError,
 )
 from app.schemas.ticket import (
     ManualTicketCreate,
@@ -23,9 +28,22 @@ from app.schemas.ticket import (
 router = APIRouter(prefix="/api/tickets", tags=["tickets"])
 
 
-def get_ticket_repository() -> TicketRepository:
+def get_ticket_repository(
+    credentials: Annotated[
+        HTTPAuthorizationCredentials | None,
+        Depends(bearer_scheme),
+    ],
+) -> TicketRepository:
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     try:
-        return TicketRepository()
+        return TicketRepository(
+            get_supabase_user_client(credentials.credentials)
+        )
     except SupabaseConfigurationError as error:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -49,6 +67,11 @@ async def create_manual_ticket(
     )
     try:
         return await run_in_threadpool(ticket_repository.create, ticket)
+    except TicketPermissionError as error:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(error),
+        ) from error
     except TicketRepositoryError as error:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
@@ -98,8 +121,13 @@ async def update_ticket_status(
             owner_id,
             update.status,
         )
+    except TicketPermissionError as error:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(error),
+        ) from error
     except TicketRepositoryError as error:
-        if str(error) == "Ticket was not found for this owner":
+        if str(error) == "Ticket was not found or status update is not permitted":
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=str(error),

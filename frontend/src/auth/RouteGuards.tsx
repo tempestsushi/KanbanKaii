@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from 'react';
 import { useAuth } from './AuthContext';
+import { safeAuthRedirect } from './redirect';
 
 function AuthLoadingScreen() {
   return (
@@ -27,7 +28,8 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!isLoading && !configurationError && !user) {
-      window.location.replace('/auth');
+      const returnPath = `${window.location.pathname}${window.location.search}`;
+      window.location.replace(`/auth?redirect=${encodeURIComponent(returnPath)}`);
     }
   }, [configurationError, isLoading, user]);
 
@@ -42,7 +44,7 @@ export function PublicOnlyRoute({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!isLoading && user) {
-      window.location.replace('/dashboard');
+      window.location.replace(safeAuthRedirect());
     }
   }, [isLoading, user]);
 

@@ -7,6 +7,7 @@ from app.core.config import get_frontend_origins
 from app.routes.health import router as health_router
 from app.routes.tickets import router as tickets_router
 from app.routes.triage import router as triage_router
+from app.organizations.routes import router as organizations_router
 from app.integrations.slack.routes.oauth import router as slack_router
 from app.integrations.slack.routes.webhooks import router as slack_webhook_router
 from app.redis.client import close_redis_client
@@ -42,5 +43,6 @@ app.add_middleware(
 app.include_router(health_router)
 app.include_router(triage_router)
 app.include_router(tickets_router)
+app.include_router(organizations_router)
 app.include_router(slack_router)
 app.include_router(slack_webhook_router)

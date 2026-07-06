@@ -20,3 +20,13 @@ def get_supabase_admin_client() -> Client:
         )
 
     return create_client(url, service_role_key)
+
+
+def get_supabase_user_client(access_token: str) -> Client:
+    """Create a PostgREST client that executes queries with one user's JWT."""
+    if not access_token.strip():
+        raise SupabaseConfigurationError("A Supabase access token is required")
+
+    client = get_supabase_admin_client()
+    client.postgrest.auth(access_token)
+    return client

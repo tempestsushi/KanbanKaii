@@ -2,9 +2,12 @@ from types import SimpleNamespace
 from unittest import TestCase
 from uuid import uuid4
 
+from postgrest.exceptions import APIError
+
 from app.database.ticket_repository import (
     TicketRepository,
     TicketRepositoryError,
+    TicketPermissionError,
 )
 from app.schemas.ticket import TicketCreate, TicketUpdate
 
@@ -54,9 +57,16 @@ class FakeSupabaseClient:
     def __init__(self, query: FakeSupabaseQuery) -> None:
         self.query = query
         self.table_name = None
+        self.rpc_name = None
+        self.rpc_parameters = None
 
     def table(self, table_name: str) -> FakeSupabaseQuery:
         self.table_name = table_name
+        return self.query
+
+    def rpc(self, function_name: str, parameters: dict) -> FakeSupabaseQuery:
+        self.rpc_name = function_name
+        self.rpc_parameters = parameters
         return self.query
 
 
@@ -187,18 +197,21 @@ class TicketRepositoryTests(TestCase):
             ]
         )
 
-        updated = TicketRepository(
-            client=FakeSupabaseClient(query)
-        ).update_status(ticket_id, ticket.owner_id, "IN_PROGRESS")
+        fake_client = FakeSupabaseClient(query)
+        updated = TicketRepository(client=fake_client).update_status(
+            ticket_id,
+            ticket.owner_id,
+            "IN_PROGRESS",
+        )
 
         self.assertEqual(updated.status, "IN_PROGRESS")
-        self.assertEqual(query.updated_payload, {"status": "IN_PROGRESS"})
+        self.assertEqual(fake_client.rpc_name, "update_assigned_ticket_status")
         self.assertEqual(
-            query.filters,
-            [
-                ("id", str(ticket_id)),
-                ("owner_id", str(ticket.owner_id)),
-            ],
+            fake_client.rpc_parameters,
+            {
+                "p_ticket_id": str(ticket_id),
+                "p_status": "IN_PROGRESS",
+            },
         )
 
     def test_updates_editable_ticket_fields_for_owner(self) -> None:
@@ -256,7 +269,29 @@ class TicketRepositoryTests(TestCase):
 
         with self.assertRaisesRegex(
             TicketRepositoryError,
-            "Ticket was not found for this owner",
+            "Ticket was not found or status update is not permitted",
+        ):
+            repository.update_status(uuid4(), uuid4(), "COMPLETED")
+
+    def test_status_update_reports_database_permission_denial(self) -> None:
+        repository = TicketRepository(
+            client=FakeSupabaseClient(
+                FakeSupabaseQuery(
+                    error=APIError(
+                        {
+                            "code": "42501",
+                            "message": "Ticket status update is not permitted",
+                            "hint": None,
+                            "details": None,
+                        }
+                    )
+                )
+            )
+        )
+
+        with self.assertRaisesRegex(
+            TicketPermissionError,
+            "Ticket status update is not permitted",
         ):
             repository.update_status(uuid4(), uuid4(), "COMPLETED")
 
