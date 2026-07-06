@@ -3,6 +3,7 @@ import { AuthProvider } from './AuthProvider';
 import { ProtectedRoute, PublicOnlyRoute } from './RouteGuards';
 
 const AuthPage = lazy(() => import('@/pages/AuthPage').then((module) => ({ default: module.AuthPage })));
+const ResetPasswordPage = lazy(() => import('@/pages/ResetPasswordPage').then((module) => ({ default: module.ResetPasswordPage })));
 const DashboardPage = lazy(() => import('@/pages/DashboardPage').then((module) => ({ default: module.DashboardPage })));
 const AnalyticsPage = lazy(() => import('@/pages/AnalyticsPage').then((module) => ({ default: module.AnalyticsPage })));
 const ProfilePage = lazy(() => import('@/pages/ProfilePage').then((module) => ({ default: module.ProfilePage })));
@@ -26,6 +27,9 @@ export default function AuthenticatedApp() {
   switch (pathname) {
     case '/auth':
       page = <PublicOnlyRoute><AuthPage /></PublicOnlyRoute>;
+      break;
+    case '/reset-password':
+      page = <ResetPasswordPage />;
       break;
     case '/dashboard':
       page = <ProtectedRoute><DashboardPage /></ProtectedRoute>;

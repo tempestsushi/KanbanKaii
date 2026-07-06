@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { getSupabaseClient } from '@/lib/supabase';
 
-type AuthMode = 'login' | 'signup';
+type AuthMode = 'login' | 'signup' | 'forgot';
 
 export function AuthPage() {
   const [mode, setMode] = useState<AuthMode>(() =>
@@ -39,6 +39,16 @@ export function AuthPage() {
     setIsSubmitting(true);
     try {
       const supabase = getSupabaseClient();
+
+      if (mode === 'forgot') {
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+          email.trim(),
+          { redirectTo: `${window.location.origin}/reset-password` },
+        );
+        if (resetError) throw resetError;
+        setNotice('If an account exists for this email, a password reset link has been sent.');
+        return;
+      }
 
       if (mode === 'signup') {
         const { data, error: signUpError } = await supabase.auth.signUp({
@@ -77,6 +87,7 @@ export function AuthPage() {
   };
 
   const isSignup = mode === 'signup';
+  const isForgot = mode === 'forgot';
 
   return (
     <main className="relative min-h-screen overflow-auto bg-violet-100 px-4 pb-8 pt-16 sm:px-6">
@@ -108,34 +119,38 @@ export function AuthPage() {
           <div className="w-full max-w-sm">
             <div className="mb-8">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-600">
-                {isSignup ? 'Create workspace' : 'Welcome back'}
+                {isForgot ? 'Account recovery' : isSignup ? 'Create workspace' : 'Welcome back'}
               </p>
               <h2 className="mt-2 text-2xl font-semibold text-slate-900">
-                {isSignup ? 'Create your account' : 'Sign in to your board'}
+                {isForgot ? 'Reset your password' : isSignup ? 'Create your account' : 'Sign in to your board'}
               </h2>
               <p className="mt-2 text-sm text-slate-500">
-                {isSignup
+                {isForgot
+                  ? 'Enter your email and we will send you a secure recovery link.'
+                  : isSignup
                   ? 'Your account receives its own private ticket workspace.'
                   : 'Use the email and password connected to your workspace.'}
               </p>
             </div>
 
-            <div className="mb-6 grid grid-cols-2 rounded-lg bg-slate-100 p-1">
-              {(['login', 'signup'] as const).map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  onClick={() => switchMode(item)}
-                  className={`rounded-md px-3 py-2 text-sm font-medium transition ${
-                    mode === item
-                      ? 'bg-white text-violet-700 shadow-sm'
-                      : 'text-slate-500 hover:text-slate-800'
-                  }`}
-                >
-                  {item === 'login' ? 'Sign in' : 'Sign up'}
-                </button>
-              ))}
-            </div>
+            {!isForgot && (
+              <div className="mb-6 grid grid-cols-2 rounded-lg bg-slate-100 p-1">
+                {(['login', 'signup'] as const).map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => switchMode(item)}
+                    className={`rounded-md px-3 py-2 text-sm font-medium transition ${
+                      mode === item
+                        ? 'bg-white text-violet-700 shadow-sm'
+                        : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    {item === 'login' ? 'Sign in' : 'Sign up'}
+                  </button>
+                ))}
+              </div>
+            )}
 
             <form className="space-y-4" onSubmit={submit}>
               {isSignup && (
@@ -166,18 +181,31 @@ export function AuthPage() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  autoComplete={isSignup ? 'new-password' : 'current-password'}
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  minLength={6}
-                  required
-                />
-              </div>
+              {!isForgot && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <Label htmlFor="password">Password</Label>
+                    {!isSignup && (
+                      <button
+                        type="button"
+                        onClick={() => switchMode('forgot')}
+                        className="text-xs font-semibold text-violet-600 hover:text-violet-800"
+                      >
+                        Forgot password?
+                      </button>
+                    )}
+                  </div>
+                  <Input
+                    id="password"
+                    type="password"
+                    autoComplete={isSignup ? 'new-password' : 'current-password'}
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    minLength={6}
+                    required
+                  />
+                </div>
+              )}
 
               {isSignup && (
                 <div className="space-y-2">
@@ -208,10 +236,22 @@ export function AuthPage() {
               <Button className="w-full" type="submit" disabled={isSubmitting}>
                 {isSubmitting
                   ? 'Please wait…'
-                  : isSignup
+                  : isForgot
+                    ? 'Send reset link'
+                    : isSignup
                     ? 'Create account'
                     : 'Sign in'}
               </Button>
+
+              {isForgot && (
+                <button
+                  type="button"
+                  onClick={() => switchMode('login')}
+                  className="w-full text-sm font-semibold text-violet-600 hover:text-violet-800"
+                >
+                  Back to sign in
+                </button>
+              )}
             </form>
           </div>
         </section>
