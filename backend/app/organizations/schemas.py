@@ -41,6 +41,9 @@ class OrganizationMemberResponse(BaseModel):
     role: OrganizationRole
     invited_by: UUID | None = None
     joined_at: datetime
+    display_name: str = Field(min_length=1, max_length=100)
+    job_title: str | None = Field(default=None, min_length=1, max_length=100)
+    avatar_url: str | None = Field(default=None, max_length=2048)
 
 
 class OrganizationMemberRoleUpdate(BaseModel):
@@ -52,7 +55,7 @@ class OrganizationMemberRoleUpdate(BaseModel):
 class OrganizationInviteCreate(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, str_strip_whitespace=True)
 
-    intended_email: str | None = Field(default=None, min_length=3, max_length=320)
+    intended_email: str = Field(min_length=3, max_length=320)
     default_role: AssignableRole = "MEMBER"
     expires_in_hours: int = Field(default=72, ge=1, le=720)
 
@@ -70,6 +73,8 @@ class OrganizationInviteResponse(BaseModel):
     accepted_at: datetime | None = None
     accepted_by: UUID | None = None
     revoked_at: datetime | None = None
+    declined_at: datetime | None = None
+    declined_by: UUID | None = None
 
 
 class OrganizationInviteCreated(OrganizationInviteResponse):
@@ -80,3 +85,16 @@ class OrganizationInviteAccepted(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
     organization_id: UUID
+
+
+class MyOrganizationInvitation(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    id: UUID
+    organization_id: UUID
+    organization_name: str
+    organization_slug: str
+    default_role: AssignableRole
+    created_by: UUID
+    created_at: datetime
+    expires_at: datetime

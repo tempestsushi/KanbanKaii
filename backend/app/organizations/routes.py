@@ -25,6 +25,7 @@ from app.organizations.schemas import (
     OrganizationInviteCreate,
     OrganizationInviteCreated,
     OrganizationInviteResponse,
+    MyOrganizationInvitation,
     OrganizationMemberResponse,
     OrganizationMemberRoleUpdate,
     OrganizationResponse,
@@ -104,6 +105,43 @@ async def accept_organization_invite(
             token,
         )
         return OrganizationInviteAccepted(organization_id=organization_id)
+    except OrganizationRepositoryError as error:
+        organization_http_error(error)
+
+
+@router.get("/invitations/pending", response_model=list[MyOrganizationInvitation])
+async def list_my_organization_invitations(
+    _: Annotated[UUID, Depends(get_current_user_id)],
+    repository: Annotated[OrganizationRepository, Depends(get_organization_repository)],
+) -> list[MyOrganizationInvitation]:
+    try:
+        return await run_in_threadpool(repository.list_my_invitations)
+    except OrganizationRepositoryError as error:
+        organization_http_error(error)
+
+
+@router.post("/invitations/{invite_id}/accept", response_model=OrganizationInviteAccepted)
+async def accept_in_app_organization_invitation(
+    invite_id: UUID,
+    _: Annotated[UUID, Depends(get_current_user_id)],
+    repository: Annotated[OrganizationRepository, Depends(get_organization_repository)],
+) -> OrganizationInviteAccepted:
+    try:
+        organization_id = await run_in_threadpool(repository.accept_invite_by_id, invite_id)
+        return OrganizationInviteAccepted(organization_id=organization_id)
+    except OrganizationRepositoryError as error:
+        organization_http_error(error)
+
+
+@router.post("/invitations/{invite_id}/decline", status_code=204)
+async def decline_in_app_organization_invitation(
+    invite_id: UUID,
+    _: Annotated[UUID, Depends(get_current_user_id)],
+    repository: Annotated[OrganizationRepository, Depends(get_organization_repository)],
+) -> Response:
+    try:
+        await run_in_threadpool(repository.decline_invite, invite_id)
+        return Response(status_code=204)
     except OrganizationRepositoryError as error:
         organization_http_error(error)
 

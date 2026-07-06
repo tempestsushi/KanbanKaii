@@ -25,7 +25,7 @@ class OrganizationService:
         invite = self.repository.create_invite(
             organization_id,
             token_hash,
-            request.intended_email.lower() if request.intended_email else None,
+            request.intended_email.lower(),
             request.default_role,
             expires_at.isoformat(),
         )

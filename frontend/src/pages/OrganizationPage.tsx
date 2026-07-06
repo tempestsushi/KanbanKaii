@@ -2,18 +2,22 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react
 import { toast } from 'sonner';
 import {
   changeOrganizationMemberRole,
+  acceptMyOrganizationInvitation,
   createOrganization,
   createOrganizationInvite,
   deleteOrganization,
+  declineMyOrganizationInvitation,
   listOrganizationInvites,
   listOrganizationMembers,
   listOrganizations,
+  listMyOrganizationInvitations,
   removeOrganizationMember,
   revokeOrganizationInvite,
   type AssignableRole,
   type Organization,
   type OrganizationInvite,
   type OrganizationMember,
+  type MyOrganizationInvitation,
 } from '@/api/organizations';
 import { useAuth } from '@/auth/AuthContext';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -40,6 +44,7 @@ export function OrganizationPage() {
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [members, setMembers] = useState<OrganizationMember[]>([]);
   const [invites, setInvites] = useState<OrganizationInvite[]>([]);
+  const [myInvitations, setMyInvitations] = useState<MyOrganizationInvitation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +53,7 @@ export function OrganizationPage() {
   const [slugEdited, setSlugEdited] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<AssignableRole>('MEMBER');
-  const [createdLink, setCreatedLink] = useState('');
+  const [respondingInviteId, setRespondingInviteId] = useState<string | null>(null);
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
@@ -65,7 +70,11 @@ export function OrganizationPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const organizations = await listOrganizations();
+      const [organizations, pendingInvitations] = await Promise.all([
+        listOrganizations(),
+        listMyOrganizationInvitations(),
+      ]);
+      setMyInvitations(pendingInvitations);
       const active = organizations[0] ?? null;
       setOrganization(active);
       if (!active) {
@@ -107,15 +116,32 @@ export function OrganizationPage() {
     setIsSaving(true);
     try {
       const invite = await createOrganizationInvite(organization.id, inviteEmail.trim(), inviteRole);
-      const link = `${window.location.origin}/join/${invite.token}`;
-      setCreatedLink(link);
       setInviteEmail('');
       setInvites(await listOrganizationInvites(organization.id));
-      toast.success('Invitation created');
+      toast.success(`Invitation sent to ${invite.intended_email}`);
     } catch (inviteError) {
       toast.error(inviteError instanceof Error ? inviteError.message : 'Could not create invitation');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const respondToInvitation = async (inviteId: string, accept: boolean) => {
+    setRespondingInviteId(inviteId);
+    try {
+      if (accept) {
+        await acceptMyOrganizationInvitation(inviteId);
+        toast.success('Organization joined');
+        await loadOrganization();
+      } else {
+        await declineMyOrganizationInvitation(inviteId);
+        setMyInvitations((items) => items.filter((item) => item.id !== inviteId));
+        toast.success('Invitation declined');
+      }
+    } catch (responseError) {
+      toast.error(responseError instanceof Error ? responseError.message : 'Could not respond to invitation');
+    } finally {
+      setRespondingInviteId(null);
     }
   };
 
@@ -169,7 +195,9 @@ export function OrganizationPage() {
   if (!organization) {
     return (
       <AppLayout pageTitle="Organization">
-        <div className="mx-auto max-w-xl p-5 sm:p-8">
+        <div className="mx-auto max-w-xl space-y-6 p-5 sm:p-8">
+          {myInvitations.length > 0 && <section className="rounded-xl border border-violet-200 bg-white p-6 shadow-sm"><h2 className="text-sm font-semibold text-slate-800">Your invitations</h2><p className="mt-1 text-xs text-slate-500">Organizations that invited your signed-in email address.</p><div className="mt-4 divide-y divide-slate-100">{myInvitations.map((invite) => <div key={invite.id} className="py-4"><p className="text-sm font-semibold text-slate-800">{invite.organization_name}</p><p className="mt-1 text-xs text-slate-500">Invited as {roleLabel(invite.default_role)} · expires {new Date(invite.expires_at).toLocaleString()}</p><div className="mt-3 flex gap-2"><Button size="sm" disabled={respondingInviteId === invite.id} onClick={() => void respondToInvitation(invite.id, true)}>{respondingInviteId === invite.id ? 'Joining…' : 'Join organization'}</Button><Button size="sm" variant="outline" disabled={respondingInviteId === invite.id} onClick={() => void respondToInvitation(invite.id, false)}>Decline</Button></div></div>)}</div></section>}
+          <div>
           <h1 className="text-2xl font-semibold text-slate-900">Create your organization</h1>
           <p className="mt-2 text-sm leading-6 text-slate-500">Create the workspace that will contain formal assignments, members and roles.</p>
           <form onSubmit={submitOrganization} className="mt-7 space-y-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -178,6 +206,7 @@ export function OrganizationPage() {
             {error && <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
             <Button disabled={isSaving || name.trim().length < 2 || slug.length < 2}>{isSaving ? 'Creating…' : 'Create organization'}</Button>
           </form>
+          </div>
         </div>
       </AppLayout>
     );
@@ -189,17 +218,19 @@ export function OrganizationPage() {
         <section><p className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-600">{currentMembership ? roleLabel(currentMembership.role) : 'Member'}</p><h1 className="mt-1 text-2xl font-semibold text-slate-900">{organization.name}</h1><p className="mt-1 text-sm text-slate-500">Manage membership and invitation access for this workspace.</p></section>
         {error && <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
 
+        {myInvitations.length > 0 && <section className="rounded-xl border border-violet-200 bg-white p-6 shadow-sm"><h2 className="text-sm font-semibold text-slate-800">Your invitations</h2><div className="mt-4 divide-y divide-slate-100">{myInvitations.map((invite) => <div key={invite.id} className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-semibold text-slate-800">{invite.organization_name}</p><p className="mt-1 text-xs text-slate-500">Invited as {roleLabel(invite.default_role)} · expires {new Date(invite.expires_at).toLocaleString()}</p></div><div className="flex gap-2"><Button size="sm" disabled={respondingInviteId === invite.id} onClick={() => void respondToInvitation(invite.id, true)}>Join</Button><Button size="sm" variant="outline" disabled={respondingInviteId === invite.id} onClick={() => void respondToInvitation(invite.id, false)}>Decline</Button></div></div>)}</div></section>}
+
         <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-sm font-semibold text-slate-800">Members <span className="text-slate-400">{members.length}</span></h2>
           <div className="mt-4 divide-y divide-slate-100">
             {members.map((member) => {
               const manageable = member.role !== 'OWNER' && member.user_id !== user?.id && (isOwner || (currentMembership?.role === 'TEAM_LEAD' && ['MEMBER', 'VIEWER'].includes(member.role)));
-              return <div key={member.user_id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-medium text-slate-700">{member.user_id === user?.id ? 'You' : `Member ${member.user_id.slice(0, 8)}`}</p><p className="mt-1 text-xs text-slate-400">Joined {new Date(member.joined_at).toLocaleDateString()}</p></div><div className="flex items-center gap-2">{manageable ? <select value={member.role} onChange={(event) => void changeRole(member, event.target.value as AssignableRole)} className="rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-600">{roles.filter((role) => isOwner || role !== 'TEAM_LEAD').map((role) => <option key={role} value={role}>{roleLabel(role)}</option>)}</select> : <span className="rounded-full bg-violet-50 px-2.5 py-1 text-[10px] font-semibold text-violet-700">{roleLabel(member.role)}</span>}{manageable && (confirmRemove === member.user_id ? <><button className="text-xs font-semibold text-red-600" onClick={() => void removeMember(member.user_id)}>Confirm</button><button className="text-xs text-slate-500" onClick={() => setConfirmRemove(null)}>Cancel</button></> : <button className="text-xs font-semibold text-slate-400 hover:text-red-600" onClick={() => setConfirmRemove(member.user_id)}>Remove</button>)}</div></div>;
+              return <div key={member.user_id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-3">{member.avatar_url ? <img src={member.avatar_url} alt="" className="h-9 w-9 rounded-full object-cover" referrerPolicy="no-referrer" /> : <div className="flex h-9 w-9 items-center justify-center rounded-full bg-violet-100 text-xs font-semibold text-violet-700">{member.display_name.trim().slice(0, 1).toUpperCase()}</div>}<div><p className="text-sm font-medium text-slate-700">{member.display_name}{member.user_id === user?.id ? ' (You)' : ''}</p><p className="mt-1 text-xs text-slate-400">{member.job_title ? `${member.job_title} · ` : ''}Joined {new Date(member.joined_at).toLocaleDateString()}</p></div></div><div className="flex items-center gap-2">{manageable ? <select value={member.role} onChange={(event) => void changeRole(member, event.target.value as AssignableRole)} className="rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-600">{roles.filter((role) => isOwner || role !== 'TEAM_LEAD').map((role) => <option key={role} value={role}>{roleLabel(role)}</option>)}</select> : <span className="rounded-full bg-violet-50 px-2.5 py-1 text-[10px] font-semibold text-violet-700">{roleLabel(member.role)}</span>}{manageable && (confirmRemove === member.user_id ? <><button className="text-xs font-semibold text-red-600" onClick={() => void removeMember(member.user_id)}>Confirm</button><button className="text-xs text-slate-500" onClick={() => setConfirmRemove(null)}>Cancel</button></> : <button className="text-xs font-semibold text-slate-400 hover:text-red-600" onClick={() => setConfirmRemove(member.user_id)}>Remove</button>)}</div></div>;
             })}
           </div>
         </section>
 
-        {canLead && <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"><h2 className="text-sm font-semibold text-slate-800">Invite members</h2><form onSubmit={createInvite} className="mt-4 grid gap-3 sm:grid-cols-[1fr_150px_auto]"><Input type="email" value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} placeholder="Optional email restriction" /><select value={inviteRole} onChange={(event) => setInviteRole(event.target.value as AssignableRole)} className="rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-600">{roles.filter((role) => isOwner || role !== 'TEAM_LEAD').map((role) => <option key={role} value={role}>{roleLabel(role)}</option>)}</select><Button disabled={isSaving}>{isSaving ? 'Creating…' : 'Create link'}</Button></form>{createdLink && <div className="mt-4 rounded-lg bg-violet-50 p-3"><p className="break-all text-xs text-violet-800">{createdLink}</p><button className="mt-2 text-xs font-semibold text-violet-700" onClick={() => void navigator.clipboard.writeText(createdLink).then(() => toast.success('Invitation link copied'))}>Copy invitation link</button></div>}<div className="mt-5 divide-y divide-slate-100">{invites.map((invite) => <div key={invite.id} className="flex items-center justify-between gap-3 py-3"><div><p className="text-xs font-medium text-slate-700">{invite.intended_email ?? 'Anyone with the link'} · {roleLabel(invite.default_role)}</p><p className="mt-1 text-[10px] text-slate-400">Expires {new Date(invite.expires_at).toLocaleString()}</p></div>{!invite.accepted_at && !invite.revoked_at && <button className="text-xs font-semibold text-red-500" onClick={() => organization && void revokeOrganizationInvite(organization.id, invite.id).then(() => setInvites((items) => items.map((item) => item.id === invite.id ? { ...item, revoked_at: new Date().toISOString() } : item))).catch((reason: unknown) => toast.error(reason instanceof Error ? reason.message : 'Could not revoke invitation'))}>Revoke</button>}</div>)}</div></section>}
+        {canLead && <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"><h2 className="text-sm font-semibold text-slate-800">Invite members</h2><p className="mt-1 text-xs text-slate-500">The invitation will appear in the Organization tab for an account using this verified email.</p><form onSubmit={createInvite} className="mt-4 grid gap-3 sm:grid-cols-[1fr_150px_auto]"><Input type="email" value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} placeholder="member@company.com" required /><select value={inviteRole} onChange={(event) => setInviteRole(event.target.value as AssignableRole)} className="rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-600">{roles.filter((role) => isOwner || role !== 'TEAM_LEAD').map((role) => <option key={role} value={role}>{roleLabel(role)}</option>)}</select><Button disabled={isSaving || !inviteEmail.trim()}>{isSaving ? 'Sending…' : 'Send invitation'}</Button></form><div className="mt-5 divide-y divide-slate-100">{invites.map((invite) => <div key={invite.id} className="flex items-center justify-between gap-3 py-3"><div><p className="text-xs font-medium text-slate-700">{invite.intended_email} · {roleLabel(invite.default_role)}</p><p className="mt-1 text-[10px] text-slate-400">Expires {new Date(invite.expires_at).toLocaleString()}</p></div>{!invite.accepted_at && !invite.revoked_at && !invite.declined_at && <button className="text-xs font-semibold text-red-500" onClick={() => organization && void revokeOrganizationInvite(organization.id, invite.id).then(() => setInvites((items) => items.map((item) => item.id === invite.id ? { ...item, revoked_at: new Date().toISOString() } : item))).catch((reason: unknown) => toast.error(reason instanceof Error ? reason.message : 'Could not revoke invitation'))}>Revoke</button>}</div>)}</div></section>}
 
         {isOwner && (
           <section className="rounded-xl border border-red-200 bg-white p-6 shadow-sm">

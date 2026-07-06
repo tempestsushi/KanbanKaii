@@ -10,6 +10,7 @@ from supabase import Client
 
 from app.organizations.schemas import (
     AssignableRole,
+    MyOrganizationInvitation,
     OrganizationInviteResponse,
     OrganizationMemberResponse,
     OrganizationResponse,
@@ -108,9 +109,10 @@ class OrganizationRepository:
 
     def list_members(self, organization_id: UUID) -> list[OrganizationMemberResponse]:
         try:
-            result = self.client.table("organization_members").select("*").eq(
-                "organization_id", str(organization_id)
-            ).order("joined_at").execute()
+            result = self.client.rpc(
+                "list_organization_members_with_profiles",
+                {"p_organization_id": str(organization_id)},
+            ).execute()
             return [
                 OrganizationMemberResponse.model_validate_json(json.dumps(row))
                 for row in result.data
@@ -154,7 +156,7 @@ class OrganizationRepository:
         return invites[0]
 
     def list_invites(self, organization_id: UUID) -> list[OrganizationInviteResponse]:
-        columns = "id,organization_id,intended_email,default_role,created_by,created_at,expires_at,accepted_at,accepted_by,revoked_at"
+        columns = "id,organization_id,intended_email,default_role,created_by,created_at,expires_at,accepted_at,accepted_by,revoked_at,declined_at,declined_by"
         try:
             result = self.client.table("organization_invites").select(columns).eq(
                 "organization_id", str(organization_id)
@@ -172,6 +174,37 @@ class OrganizationRepository:
         except APIError as error:
             _raise_database_error(error, "Supabase could not accept the invitation")
         return _uuid_result(result.data)
+
+    def list_my_invitations(self) -> list[MyOrganizationInvitation]:
+        try:
+            result = self.client.rpc("list_my_organization_invitations").execute()
+            return [
+                MyOrganizationInvitation.model_validate_json(json.dumps(row))
+                for row in result.data
+            ]
+        except (APIError, ValidationError, TypeError) as error:
+            if isinstance(error, APIError):
+                _raise_database_error(error, "Supabase could not load your invitations")
+            raise OrganizationRepositoryError("Supabase could not load your invitations") from error
+
+    def accept_invite_by_id(self, invite_id: UUID) -> UUID:
+        try:
+            result = self.client.rpc(
+                "accept_organization_invitation_by_id",
+                {"p_invite_id": str(invite_id)},
+            ).execute()
+        except APIError as error:
+            _raise_database_error(error, "Supabase could not accept the invitation")
+        return _uuid_result(result.data)
+
+    def decline_invite(self, invite_id: UUID) -> None:
+        try:
+            self.client.rpc(
+                "decline_organization_invitation",
+                {"p_invite_id": str(invite_id)},
+            ).execute()
+        except APIError as error:
+            _raise_database_error(error, "Supabase could not decline the invitation")
 
     def revoke_invite(self, invite_id: UUID) -> None:
         try:

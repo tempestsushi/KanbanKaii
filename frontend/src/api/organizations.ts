@@ -18,6 +18,9 @@ export interface OrganizationMember {
   role: OrganizationRole;
   invited_by: string | null;
   joined_at: string;
+  display_name: string;
+  job_title: string | null;
+  avatar_url: string | null;
 }
 
 export interface OrganizationInvite {
@@ -31,10 +34,23 @@ export interface OrganizationInvite {
   accepted_at: string | null;
   accepted_by: string | null;
   revoked_at: string | null;
+  declined_at: string | null;
+  declined_by: string | null;
 }
 
 export interface CreatedOrganizationInvite extends OrganizationInvite {
   token: string;
+}
+
+export interface MyOrganizationInvitation {
+  id: string;
+  organization_id: string;
+  organization_name: string;
+  organization_slug: string;
+  default_role: AssignableRole;
+  created_by: string;
+  created_at: string;
+  expires_at: string;
 }
 
 async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -67,6 +83,9 @@ export const listOrganizationMembers = (id: string) => apiRequest<OrganizationMe
 export const changeOrganizationMemberRole = (id: string, userId: string, role: AssignableRole) => apiRequest<OrganizationMember>(`/api/organizations/${id}/members/${userId}/role`, { method: 'PATCH', body: JSON.stringify({ role }) });
 export const removeOrganizationMember = (id: string, userId: string) => apiRequest<void>(`/api/organizations/${id}/members/${userId}`, { method: 'DELETE' });
 export const listOrganizationInvites = (id: string) => apiRequest<OrganizationInvite[]>(`/api/organizations/${id}/invites`);
-export const createOrganizationInvite = (id: string, intendedEmail: string, defaultRole: AssignableRole) => apiRequest<CreatedOrganizationInvite>(`/api/organizations/${id}/invites`, { method: 'POST', body: JSON.stringify({ intended_email: intendedEmail || null, default_role: defaultRole, expires_in_hours: 72 }) });
+export const createOrganizationInvite = (id: string, intendedEmail: string, defaultRole: AssignableRole) => apiRequest<CreatedOrganizationInvite>(`/api/organizations/${id}/invites`, { method: 'POST', body: JSON.stringify({ intended_email: intendedEmail, default_role: defaultRole, expires_in_hours: 72 }) });
 export const revokeOrganizationInvite = (id: string, inviteId: string) => apiRequest<void>(`/api/organizations/${id}/invites/${inviteId}`, { method: 'DELETE' });
 export const acceptOrganizationInvite = (token: string) => apiRequest<{ organization_id: string }>(`/api/organizations/invites/${encodeURIComponent(token)}/accept`, { method: 'POST' });
+export const listMyOrganizationInvitations = () => apiRequest<MyOrganizationInvitation[]>('/api/organizations/invitations/pending');
+export const acceptMyOrganizationInvitation = (inviteId: string) => apiRequest<{ organization_id: string }>(`/api/organizations/invitations/${inviteId}/accept`, { method: 'POST' });
+export const declineMyOrganizationInvitation = (inviteId: string) => apiRequest<void>(`/api/organizations/invitations/${inviteId}/decline`, { method: 'POST' });
