@@ -53,7 +53,8 @@ class SlackConnectionStatus(BaseModel):
 
 
 class OrganizationSlackBindingStatus(BaseModel):
-    model_config = ConfigDict(extra="forbid", strict=True)
+    # Supabase/PostgREST serializes timestamptz values as ISO-8601 strings.
+    model_config = ConfigDict(extra="forbid")
 
     connected: bool
     workspace_name: str | None = None

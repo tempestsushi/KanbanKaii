@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 
 from app.auth.dependencies import get_current_user_id
 from app.integrations.slack.config import SlackOAuthSettings
+from app.integrations.slack.schemas import OrganizationSlackBindingStatus
 from app.integrations.slack.services.connection import SlackConnectionService
 from app.integrations.slack.security.encryption import TokenCipher
 from app.integrations.slack.services.oauth import (
@@ -187,6 +188,15 @@ class SlackIntegrationTests(TestCase):
 
         self.assertNotIn("xoxb-secret-token", ciphertext)
         self.assertEqual(cipher.decrypt(ciphertext), "xoxb-secret-token")
+
+    def test_binding_status_parses_supabase_datetime_string(self) -> None:
+        status = OrganizationSlackBindingStatus(
+            connected=True,
+            workspace_name="Acme Engineering",
+            slack_team_id="T-WORKSPACE",
+            verified_at="2026-07-06T13:28:41.368573+00:00",
+        )
+        self.assertEqual(status.verified_at.year, 2026)
 
     def test_complete_installation_exchanges_and_encrypts_token(self) -> None:
         repository = FakeSlackRepository()
