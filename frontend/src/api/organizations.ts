@@ -79,6 +79,7 @@ async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
 export const listOrganizations = () => apiRequest<Organization[]>('/api/organizations');
 export const createOrganization = (name: string, slug: string) => apiRequest<Organization>('/api/organizations', { method: 'POST', body: JSON.stringify({ name, slug }) });
 export const deleteOrganization = (id: string, confirmationSlug: string) => apiRequest<void>(`/api/organizations/${id}`, { method: 'DELETE', body: JSON.stringify({ confirmation_slug: confirmationSlug }) });
+export const leaveOrganization = (id: string) => apiRequest<void>(`/api/organizations/${id}/leave`, { method: 'POST' });
 export const listOrganizationMembers = (id: string) => apiRequest<OrganizationMember[]>(`/api/organizations/${id}/members`);
 export const changeOrganizationMemberRole = (id: string, userId: string, role: AssignableRole) => apiRequest<OrganizationMember>(`/api/organizations/${id}/members/${userId}/role`, { method: 'PATCH', body: JSON.stringify({ role }) });
 export const removeOrganizationMember = (id: string, userId: string) => apiRequest<void>(`/api/organizations/${id}/members/${userId}`, { method: 'DELETE' });

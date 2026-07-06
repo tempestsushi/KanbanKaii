@@ -11,6 +11,7 @@ import {
   listOrganizationMembers,
   listOrganizations,
   listMyOrganizationInvitations,
+  leaveOrganization,
   removeOrganizationMember,
   revokeOrganizationInvite,
   type AssignableRole,
@@ -58,6 +59,8 @@ export function OrganizationPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [isDeletingOrganization, setIsDeletingOrganization] = useState(false);
+  const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
+  const [isLeavingOrganization, setIsLeavingOrganization] = useState(false);
 
   const currentMembership = useMemo(
     () => members.find((member) => member.user_id === user?.id),
@@ -190,6 +193,25 @@ export function OrganizationPage() {
     }
   };
 
+  const leaveCurrentOrganization = async () => {
+    if (!organization || isOwner) return;
+    setIsLeavingOrganization(true);
+    try {
+      await leaveOrganization(organization.id);
+      setLeaveDialogOpen(false);
+      toast.success(`You left ${organization.name}`);
+      await loadOrganization();
+    } catch (leaveError) {
+      toast.error(
+        leaveError instanceof Error
+          ? leaveError.message
+          : 'Could not leave the organization',
+      );
+    } finally {
+      setIsLeavingOrganization(false);
+    }
+  };
+
   if (isLoading) return <AppLayout pageTitle="Organization"><div className="p-8 text-sm text-slate-500">Loading organization…</div></AppLayout>;
 
   if (!organization) {
@@ -231,6 +253,28 @@ export function OrganizationPage() {
         </section>
 
         {canLead && <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"><h2 className="text-sm font-semibold text-slate-800">Invite members</h2><p className="mt-1 text-xs text-slate-500">The invitation will appear in the Organization tab for an account using this verified email.</p><form onSubmit={createInvite} className="mt-4 grid gap-3 sm:grid-cols-[1fr_150px_auto]"><Input type="email" value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} placeholder="member@company.com" required /><select value={inviteRole} onChange={(event) => setInviteRole(event.target.value as AssignableRole)} className="rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-600">{roles.filter((role) => isOwner || role !== 'TEAM_LEAD').map((role) => <option key={role} value={role}>{roleLabel(role)}</option>)}</select><Button disabled={isSaving || !inviteEmail.trim()}>{isSaving ? 'Sending…' : 'Send invitation'}</Button></form><div className="mt-5 divide-y divide-slate-100">{invites.map((invite) => <div key={invite.id} className="flex items-center justify-between gap-3 py-3"><div><p className="text-xs font-medium text-slate-700">{invite.intended_email} · {roleLabel(invite.default_role)}</p><p className="mt-1 text-[10px] text-slate-400">Expires {new Date(invite.expires_at).toLocaleString()}</p></div>{!invite.accepted_at && !invite.revoked_at && !invite.declined_at && <button className="text-xs font-semibold text-red-500" onClick={() => organization && void revokeOrganizationInvite(organization.id, invite.id).then(() => setInvites((items) => items.map((item) => item.id === invite.id ? { ...item, revoked_at: new Date().toISOString() } : item))).catch((reason: unknown) => toast.error(reason instanceof Error ? reason.message : 'Could not revoke invitation'))}>Revoke</button>}</div>)}</div></section>}
+
+        {currentMembership && !isOwner && (
+          <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-sm font-semibold text-slate-800">Membership</h2>
+            <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-800">Leave organization</p>
+                <p className="mt-1 text-xs leading-5 text-slate-500">
+                  Remove your membership and access to this organization’s shared board.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                onClick={() => setLeaveDialogOpen(true)}
+              >
+                Leave organization
+              </Button>
+            </div>
+          </section>
+        )}
 
         {isOwner && (
           <section className="rounded-xl border border-red-200 bg-white p-6 shadow-sm">
@@ -294,6 +338,37 @@ export function OrganizationPage() {
               className="bg-red-600 text-white hover:bg-red-700"
             >
               {isDeletingOrganization ? 'Deleting…' : 'Delete permanently'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={leaveDialogOpen}
+        onOpenChange={(open) => {
+          if (!isLeavingOrganization) setLeaveDialogOpen(open);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Leave {organization.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You will immediately lose access to the organization board and member list.
+              Existing shared ticket history will remain with the organization. Your private
+              tickets and personal Slack connection will not be removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isLeavingOrganization}>Stay in organization</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isLeavingOrganization}
+              onClick={(event) => {
+                event.preventDefault();
+                void leaveCurrentOrganization();
+              }}
+              className="bg-red-600 text-white hover:bg-red-700"
+            >
+              {isLeavingOrganization ? 'Leaving…' : 'Leave organization'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

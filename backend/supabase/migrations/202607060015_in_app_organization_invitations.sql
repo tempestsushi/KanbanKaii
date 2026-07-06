@@ -107,9 +107,9 @@ begin
         raise exception 'Authentication required' using errcode = '42501';
     end if;
 
-    select lower(email) into v_email
-    from auth.users
-    where id = v_user_id and email_confirmed_at is not null;
+    select lower(account.email) into v_email
+    from auth.users account
+    where account.id = v_user_id and account.email_confirmed_at is not null;
 
     if v_email is null then
         raise exception 'A verified email address is required' using errcode = '42501';

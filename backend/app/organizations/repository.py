@@ -144,6 +144,15 @@ class OrganizationRepository:
         except APIError as error:
             _raise_database_error(error, "Supabase could not remove the member")
 
+    def leave(self, organization_id: UUID) -> None:
+        try:
+            self.client.rpc(
+                "leave_organization",
+                {"p_organization_id": str(organization_id)},
+            ).execute()
+        except APIError as error:
+            _raise_database_error(error, "Supabase could not leave the organization")
+
     def create_invite(self, organization_id: UUID, token_hash: str, intended_email: str | None, role: AssignableRole, expires_at: str) -> OrganizationInviteResponse:
         try:
             result = self.client.rpc("create_organization_invite", {

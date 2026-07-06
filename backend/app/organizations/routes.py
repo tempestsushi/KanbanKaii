@@ -158,6 +158,19 @@ async def get_organization(
         organization_http_error(error)
 
 
+@router.post("/{organization_id}/leave", status_code=204)
+async def leave_organization(
+    organization_id: UUID,
+    _: Annotated[UUID, Depends(get_current_user_id)],
+    repository: Annotated[OrganizationRepository, Depends(get_organization_repository)],
+) -> Response:
+    try:
+        await run_in_threadpool(repository.leave, organization_id)
+        return Response(status_code=204)
+    except OrganizationRepositoryError as error:
+        organization_http_error(error)
+
+
 @router.delete("/{organization_id}", status_code=204)
 async def delete_organization(
     organization_id: UUID,
