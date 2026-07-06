@@ -25,8 +25,8 @@ const benefits = [
 ];
 
 export function LandingPage() {
-  const workspaceHref = '/auth';
-  const workspaceLabel = 'Start free';
+  const workspaceHref = '/auth?mode=signup';
+  const workspaceLabel = 'Start for free';
 
   return (
     <main className="landing-scroll h-screen overflow-y-auto bg-[#f7f7fb] text-slate-950">
