@@ -24,6 +24,18 @@ class ManualTicketCreate(BaseModel):
     assignee: str = Field(min_length=1, max_length=100)
 
 
+class OrganizationTicketCreate(BaseModel):
+    """Lead-entered formal assignment for one organization member."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    title: str = Field(min_length=1, max_length=200)
+    description: str = Field(min_length=1, max_length=5_000)
+    priority: Priority
+    status: TicketStatus = "PENDING"
+    assignee_user_id: UUID
+
+
 class TicketCreate(BaseModel):
     """Validated ticket data before it is stored."""
 

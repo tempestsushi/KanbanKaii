@@ -3,6 +3,7 @@ import {
   listOrganizationMembers,
   listOrganizations,
   type Organization,
+  type OrganizationMember,
   type OrganizationRole,
 } from '@/api/organizations';
 import { useAuth } from '@/auth/AuthContext';
@@ -14,6 +15,7 @@ export function OrganizationBoardPage() {
   const { user } = useAuth();
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [role, setRole] = useState<OrganizationRole | undefined>();
+  const [members, setMembers] = useState<OrganizationMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,10 +28,12 @@ export function OrganizationBoardPage() {
       setOrganization(active);
       if (!active) {
         setRole(undefined);
+        setMembers([]);
         return;
       }
-      const members = await listOrganizationMembers(active.id);
-      setRole(members.find((member) => member.user_id === user?.id)?.role);
+      const loadedMembers = await listOrganizationMembers(active.id);
+      setMembers(loadedMembers);
+      setRole(loadedMembers.find((member) => member.user_id === user?.id)?.role);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Could not load organization');
     } finally {
@@ -69,7 +73,7 @@ export function OrganizationBoardPage() {
             : 'You can view all tickets and move only tasks assigned to you.'}
         </span>
       </div>
-      <KanbanBoard organizationId={organization.id} organizationRole={role} />
+      <KanbanBoard organizationId={organization.id} organizationRole={role} organizationMembers={members} />
     </AppLayout>
   );
 }

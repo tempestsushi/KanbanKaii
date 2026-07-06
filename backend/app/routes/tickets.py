@@ -17,6 +17,7 @@ from app.database.ticket_repository import (
 )
 from app.schemas.ticket import (
     ManualTicketCreate,
+    OrganizationTicketCreate,
     TicketCreate,
     TicketResponse,
     TicketStatus,
@@ -121,6 +122,29 @@ async def list_organization_tickets(
         raise HTTPException(status_code=403, detail=str(error)) from error
     except TicketRepositoryError as error:
         raise HTTPException(status_code=502, detail=str(error)) from error
+
+
+@router.post(
+    "/organizations/{organization_id}",
+    response_model=TicketResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_organization_ticket(
+    organization_id: UUID,
+    request: OrganizationTicketCreate,
+    _: Annotated[UUID, Depends(get_current_user_id)],
+    ticket_repository: Annotated[TicketRepository, Depends(get_ticket_repository)],
+) -> TicketResponse:
+    try:
+        return await run_in_threadpool(
+            ticket_repository.create_for_organization,
+            organization_id,
+            request,
+        )
+    except TicketPermissionError as error:
+        raise HTTPException(status_code=403, detail=str(error)) from error
+    except TicketRepositoryError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
 
 
 @router.patch(

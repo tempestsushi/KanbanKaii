@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { ArrowDownUp, ListFilter, Plus, Search } from 'lucide-react';
 import {
   createTicket,
+  createOrganizationTicket,
   deleteOrganizationTicket,
   deleteTicket as deleteStoredTicket,
   fetchTickets,
@@ -69,9 +70,10 @@ const priorityOrder: Record<TicketPriority, number> = {
 interface KanbanBoardProps {
   organizationId?: string;
   organizationRole?: OrganizationRole;
+  organizationMembers?: Array<{ user_id: string; display_name: string }>;
 }
 
-export function KanbanBoard({ organizationId, organizationRole }: KanbanBoardProps) {
+export function KanbanBoard({ organizationId, organizationRole, organizationMembers = [] }: KanbanBoardProps) {
   const { user } = useAuth();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -90,7 +92,11 @@ export function KanbanBoard({ organizationId, organizationRole }: KanbanBoardPro
   const notificationSettings = useMemo(() => notificationSettingsFromUser(user), [user]);
   const isOrganizationBoard = Boolean(organizationId);
   const canManageOrganization = organizationRole === 'OWNER' || organizationRole === 'TEAM_LEAD';
-  const canCreate = !isOrganizationBoard;
+  const canCreate = !isOrganizationBoard || canManageOrganization;
+  const assigneeOptions = useMemo(
+    () => organizationMembers.map((member) => ({ value: member.user_id, label: member.display_name })),
+    [organizationMembers],
+  );
   const canMoveTicket = useCallback(
     (ticket: Ticket) => !isOrganizationBoard || canManageOrganization || ticket.assigneeUserId === user?.id,
     [canManageOrganization, isOrganizationBoard, user?.id],
@@ -294,9 +300,10 @@ export function KanbanBoard({ organizationId, organizationRole }: KanbanBoardPro
       }
     }
 
-    if (organizationId) return false;
     try {
-      const createdTicket = await createTicket(values);
+      const createdTicket = organizationId
+        ? await createOrganizationTicket(organizationId, values)
+        : await createTicket(values);
       setTickets((items) => mergeTicket(items, createdTicket));
       setModalOpen(false);
       toast.success('Ticket created');
@@ -470,6 +477,7 @@ export function KanbanBoard({ organizationId, organizationRole }: KanbanBoardPro
             onDelete={deleteTicket}
             defaultStatus={defaultStatus}
             readOnly={isOrganizationBoard && !canManageOrganization}
+            assigneeOptions={isOrganizationBoard ? assigneeOptions : undefined}
           />
         </Suspense>
       )}

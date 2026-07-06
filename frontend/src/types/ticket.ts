@@ -32,4 +32,4 @@ export interface Ticket {
 export type TicketFormValues = Pick<
   Ticket,
   'title' | 'description' | 'priority' | 'status' | 'assignee' | 'source'
->;
+> & { assigneeUserId?: string };

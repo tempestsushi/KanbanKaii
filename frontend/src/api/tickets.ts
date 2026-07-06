@@ -244,6 +244,34 @@ export async function createTicket(values: TicketFormValues): Promise<Ticket> {
   return mapApiTicket((await response.json()) as ApiTicket);
 }
 
+export async function createOrganizationTicket(
+  organizationId: string,
+  values: TicketFormValues,
+): Promise<Ticket> {
+  if (!values.assigneeUserId) throw new Error('Select an organization member');
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+  if (!apiBaseUrl) throw new Error('Frontend API configuration is missing');
+  const response = await fetch(
+    new URL(`/api/tickets/organizations/${organizationId}`, apiBaseUrl),
+    {
+      method: 'POST',
+      headers: await authenticatedHeaders(true),
+      body: JSON.stringify({
+        title: values.title,
+        description: values.description,
+        priority: apiPriorityMap[values.priority],
+        status: apiStatusMap[values.status],
+        assignee_user_id: values.assigneeUserId,
+      }),
+    },
+  );
+  if (!response.ok) {
+    const body = await response.json().catch(() => null) as { detail?: string } | null;
+    throw new Error(body?.detail ?? `Could not create organization ticket (${response.status})`);
+  }
+  return mapApiTicket((await response.json()) as ApiTicket);
+}
+
 export async function deleteTicket(ticketId: string): Promise<void> {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 

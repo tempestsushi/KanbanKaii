@@ -35,12 +35,14 @@ interface TicketModalProps {
   onSave: (values: TicketFormValues) => Promise<boolean>;
   onDelete: (id: string) => Promise<boolean>;
   readOnly?: boolean;
+  assigneeOptions?: Array<{ value: string; label: string }>;
 }
 
-export function TicketModal({ ticket, isOpen, defaultStatus, onClose, onSave, onDelete, readOnly = false }: TicketModalProps) {
+export function TicketModal({ ticket, isOpen, defaultStatus, onClose, onSave, onDelete, readOnly = false, assigneeOptions }: TicketModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [assignee, setAssignee] = useState('');
+  const [assigneeUserId, setAssigneeUserId] = useState('');
   const [priority, setPriority] = useState<TicketPriority>('Medium');
   const [status, setStatus] = useState<TicketStatus>('Pending');
   const [source, setSource] = useState<TicketSource>('Manual');
@@ -52,10 +54,11 @@ export function TicketModal({ ticket, isOpen, defaultStatus, onClose, onSave, on
     setTitle(ticket?.title ?? '');
     setDescription(ticket?.description ?? '');
     setAssignee(ticket?.assignee ?? '');
+    setAssigneeUserId(ticket?.assigneeUserId ?? assigneeOptions?.[0]?.value ?? '');
     setPriority(ticket?.priority ?? 'Medium');
     setStatus(ticket?.status ?? defaultStatus);
     setSource(ticket?.source ?? 'Manual');
-  }, [ticket, defaultStatus, isOpen]);
+  }, [ticket, defaultStatus, isOpen, assigneeOptions]);
 
   const submit = async () => {
     if (!title.trim() || !description.trim() || isSaving) return;
@@ -63,7 +66,10 @@ export function TicketModal({ ticket, isOpen, defaultStatus, onClose, onSave, on
     await onSave({
       title: title.trim(),
       description: description.trim(),
-      assignee: assignee.trim() || 'Unassigned',
+      assignee: assigneeOptions
+        ? assigneeOptions.find((option) => option.value === assigneeUserId)?.label ?? ticket?.assignee ?? 'Unassigned'
+        : assignee.trim() || 'Unassigned',
+      assigneeUserId: assigneeUserId || ticket?.assigneeUserId,
       priority,
       status,
       source: ticket ? source : 'Manual',
@@ -95,7 +101,14 @@ export function TicketModal({ ticket, isOpen, defaultStatus, onClose, onSave, on
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2">
               <Label htmlFor="ticket-assignee">Assignee</Label>
-              <Input id="ticket-assignee" value={assignee} onChange={(event) => setAssignee(event.target.value)} placeholder="Name" disabled={readOnly} />
+              {assigneeOptions && !ticket ? (
+                <Select value={assigneeUserId} onValueChange={setAssigneeUserId} disabled={readOnly}>
+                  <SelectTrigger id="ticket-assignee"><SelectValue placeholder="Select member" /></SelectTrigger>
+                  <SelectContent>{assigneeOptions.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent>
+                </Select>
+              ) : (
+                <Input id="ticket-assignee" value={assignee} onChange={(event) => setAssignee(event.target.value)} placeholder="Name" disabled={readOnly || Boolean(assigneeOptions)} />
+              )}
             </div>
             <div className="grid gap-2">
               <Label>Priority</Label>
@@ -123,7 +136,7 @@ export function TicketModal({ ticket, isOpen, defaultStatus, onClose, onSave, on
         <DialogFooter className="gap-2 sm:gap-2">
           {ticket && !readOnly && <Button variant="destructive" className="sm:mr-auto" disabled={isSaving || isDeleting} onClick={() => setDeleteConfirmationOpen(true)}><Trash2 className="mr-2 h-4 w-4" />Delete</Button>}
           <Button variant="outline" disabled={isSaving || isDeleting} onClick={onClose}>{readOnly ? 'Close' : 'Cancel'}</Button>
-          {!readOnly && <Button disabled={!title.trim() || !description.trim() || isSaving || isDeleting} onClick={() => void submit()}>{isSaving ? (ticket ? 'Saving…' : 'Creating…') : ticket ? 'Save changes' : 'Create ticket'}</Button>}
+          {!readOnly && <Button disabled={!title.trim() || !description.trim() || (Boolean(assigneeOptions) && !ticket && !assigneeUserId) || isSaving || isDeleting} onClick={() => void submit()}>{isSaving ? (ticket ? 'Saving…' : 'Creating…') : ticket ? 'Save changes' : 'Create ticket'}</Button>}
         </DialogFooter>
       </DialogContent>
 

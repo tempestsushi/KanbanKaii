@@ -8,6 +8,7 @@ from supabase import Client
 
 from app.database.supabase_client import get_supabase_admin_client
 from app.schemas.ticket import (
+    OrganizationTicketCreate,
     TicketCreate,
     TicketResponse,
     TicketStatus,
@@ -121,6 +122,41 @@ class TicketRepository:
             raise TicketRepositoryError(
                 "Supabase returned an invalid ticket record"
             ) from exc
+
+    def create_for_organization(
+        self,
+        organization_id: UUID,
+        ticket: OrganizationTicketCreate,
+    ) -> TicketResponse:
+        """Create one guarded formal assignment through the database RPC."""
+        try:
+            result = self.client.rpc(
+                "create_organization_ticket",
+                {
+                    "p_organization_id": str(organization_id),
+                    "p_assignee_user_id": str(ticket.assignee_user_id),
+                    "p_title": ticket.title,
+                    "p_description": ticket.description,
+                    "p_priority": ticket.priority,
+                    "p_status": ticket.status,
+                },
+            ).execute()
+        except APIError as exc:
+            if exc.code == "42501":
+                raise TicketPermissionError(exc.message) from exc
+            if exc.code in {"22023", "23514"}:
+                raise TicketRepositoryError(exc.message) from exc
+            raise TicketRepositoryError(
+                "Supabase could not create the organization ticket"
+            ) from exc
+        except Exception as exc:
+            raise TicketRepositoryError(
+                "Supabase could not create the organization ticket"
+            ) from exc
+        return self._single_ticket(
+            result.data,
+            "Supabase did not return the created organization ticket",
+        )
 
     def update_for_organization(
         self,
