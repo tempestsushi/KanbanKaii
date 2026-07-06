@@ -19,12 +19,14 @@ async function authToken(): Promise<string> {
   return data.session.access_token;
 }
 
-export async function startSlackConnection(): Promise<string> {
+export async function startSlackConnection(organizationId?: string): Promise<string> {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
   if (!apiBaseUrl) throw new Error('Frontend API configuration is missing');
 
+  const url = new URL('/api/integrations/slack/connect', apiBaseUrl);
+  if (organizationId) url.searchParams.set('organization_id', organizationId);
   const response = await fetch(
-    new URL('/api/integrations/slack/connect', apiBaseUrl),
+    url,
     {
       method: 'POST',
       headers: {
@@ -42,6 +44,29 @@ export async function startSlackConnection(): Promise<string> {
 
   const result = (await response.json()) as SlackConnectResponse;
   return result.authorization_url;
+}
+
+export interface OrganizationSlackBindingStatus {
+  connected: boolean;
+  workspace_name: string | null;
+  slack_team_id: string | null;
+  verified_at: string | null;
+}
+
+export async function getOrganizationSlackStatus(
+  organizationId: string,
+): Promise<OrganizationSlackBindingStatus> {
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+  if (!apiBaseUrl) throw new Error('Frontend API configuration is missing');
+  const response = await fetch(
+    new URL(`/api/integrations/slack/organizations/${organizationId}/status`, apiBaseUrl),
+    { headers: { Authorization: `Bearer ${await authToken()}`, ...ngrokHeaders } },
+  );
+  if (!response.ok) {
+    const body = await response.json().catch(() => null) as { detail?: string } | null;
+    throw new Error(body?.detail ?? `Could not load organization Slack status (${response.status})`);
+  }
+  return response.json() as Promise<OrganizationSlackBindingStatus>;
 }
 
 export async function getSlackConnectionStatus(): Promise<SlackConnectionStatus> {

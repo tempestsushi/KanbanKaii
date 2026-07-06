@@ -13,7 +13,12 @@ from app.auth.dependencies import get_current_user_id
 from app.integrations.slack.config import SlackOAuthSettings
 from app.integrations.slack.services.connection import SlackConnectionService
 from app.integrations.slack.security.encryption import TokenCipher
-from app.integrations.slack.services.oauth import SlackOAuthService
+from app.integrations.slack.services.oauth import (
+    SlackOAuthCompletion,
+    SlackOAuthService,
+    SlackWorkspaceVerificationError,
+)
+from app.integrations.slack.services.oauth_state import SlackOAuthContext
 from app.integrations.slack.routes.oauth import (
     get_slack_oauth_service,
     get_slack_repository,
@@ -40,6 +45,8 @@ class FakeSlackRepository:
         self.saved_installation = None
         self.owner_id = uuid4()
         self.workspace_name = None
+        self.organization_owner = True
+        self.bound_workspace = None
 
     def save_installation(self, **values) -> None:
         self.saved_installation = values
@@ -48,18 +55,24 @@ class FakeSlackRepository:
         self.status_owner_id = owner_id
         return self.workspace_name
 
+    def is_organization_owner(self, owner_id, organization_id):
+        return self.organization_owner
+
+    def bind_organization_workspace(self, **values):
+        self.bound_workspace = values
+
 
 class FakeOAuthStateStore:
     def __init__(self, owner_id=None) -> None:
         self.owner_id = owner_id or uuid4()
         self.saved_state = None
 
-    async def create(self, owner_id, state_hash) -> None:
-        self.saved_state = (owner_id, state_hash)
+    async def create(self, owner_id, state_hash, organization_id=None) -> None:
+        self.saved_state = (owner_id, state_hash, organization_id)
 
     async def consume(self, state_hash):
         self.consumed_state_hash = state_hash
-        return self.owner_id
+        return SlackOAuthContext(owner_id=self.owner_id)
 
 
 class FakeSlackResponse:
@@ -77,6 +90,26 @@ class FakeSlackResponse:
         }
 
 
+class FakeSlackOwnerResponse(FakeSlackResponse):
+    def json(self):
+        return {
+            "ok": True,
+            "user": {
+                "id": "U-INSTALLER",
+                "is_owner": True,
+                "is_primary_owner": False,
+            },
+        }
+
+
+class FakeSlackMemberResponse(FakeSlackResponse):
+    def json(self):
+        return {
+            "ok": True,
+            "user": {"id": "U-INSTALLER", "is_owner": False, "is_primary_owner": False},
+        }
+
+
 class FakeHTTPClient:
     def __init__(self) -> None:
         self.request = None
@@ -85,19 +118,24 @@ class FakeHTTPClient:
         self.request = (url, data)
         return FakeSlackResponse()
 
+    async def get(self, url, headers, params):
+        self.owner_request = (url, headers, params)
+        return FakeSlackOwnerResponse()
+
 
 class FakeSlackOAuthService:
     def __init__(self) -> None:
         self.owner_id = None
         self.callback = None
 
-    async def create_authorization_url(self, owner_id: UUID) -> str:
+    async def create_authorization_url(self, owner_id: UUID, organization_id=None) -> str:
         self.owner_id = owner_id
+        self.organization_id = organization_id
         return "https://slack.com/oauth/v2/authorize?state=test"
 
     async def complete_installation(self, code: str, state: str) -> str:
         self.callback = (code, state)
-        return "Acme Engineering"
+        return SlackOAuthCompletion(workspace_name="Acme Engineering")
 
 
 class FakeSlackConnectionService:
@@ -164,11 +202,11 @@ class SlackIntegrationTests(TestCase):
             http_client,
         )
 
-        workspace_name = asyncio.run(
+        completion = asyncio.run(
             service.complete_installation("oauth-code", "raw-state")
         )
 
-        self.assertEqual(workspace_name, "Acme Engineering")
+        self.assertEqual(completion.workspace_name, "Acme Engineering")
         self.assertEqual(repository.saved_installation["owner_id"], repository.owner_id)
         self.assertEqual(repository.saved_installation["team_id"], "T-WORKSPACE")
         self.assertEqual(
@@ -193,6 +231,53 @@ class SlackIntegrationTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(service.owner_id, owner_id)
+
+    def test_organization_connection_verifies_slack_workspace_owner(self) -> None:
+        repository = FakeSlackRepository()
+        organization_id = uuid4()
+        state_store = FakeOAuthStateStore(repository.owner_id)
+
+        async def consume(_state_hash):
+            return SlackOAuthContext(repository.owner_id, organization_id)
+
+        state_store.consume = consume
+        http_client = FakeHTTPClient()
+        settings = slack_settings()
+        service = SlackOAuthService(
+            settings, repository, TokenCipher(settings.encryption_key),
+            state_store, http_client,
+        )
+        completion = asyncio.run(service.complete_installation("code", "state"))
+        self.assertEqual(completion.organization_id, organization_id)
+        self.assertEqual(repository.bound_workspace["team_id"], "T-WORKSPACE")
+        self.assertEqual(repository.bound_workspace["slack_user_id"], "U-INSTALLER")
+
+    def test_organization_connection_rejects_non_owner_slack_user(self) -> None:
+        repository = FakeSlackRepository()
+        organization_id = uuid4()
+        state_store = FakeOAuthStateStore(repository.owner_id)
+
+        async def consume(_state_hash):
+            return SlackOAuthContext(repository.owner_id, organization_id)
+
+        state_store.consume = consume
+        http_client = FakeHTTPClient()
+
+        async def member_get(_url, headers, params):
+            return FakeSlackMemberResponse()
+
+        http_client.get = member_get
+        settings = slack_settings()
+        service = SlackOAuthService(
+            settings, repository, TokenCipher(settings.encryption_key),
+            state_store, http_client,
+        )
+        with self.assertRaisesRegex(
+            SlackWorkspaceVerificationError, "not a workspace owner"
+        ):
+            asyncio.run(service.complete_installation("code", "state"))
+        self.assertIsNone(repository.saved_installation)
+        self.assertIsNone(repository.bound_workspace)
 
     def test_callback_completes_installation_and_redirects(self) -> None:
         service = FakeSlackOAuthService()

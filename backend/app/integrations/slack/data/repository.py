@@ -4,7 +4,11 @@ from uuid import UUID
 from dataclasses import dataclass
 
 from supabase import Client
-from app.integrations.slack.schemas import SlackQueuedDelivery, SlackStoredInstallation
+from app.integrations.slack.schemas import (
+    OrganizationSlackBindingStatus,
+    SlackQueuedDelivery,
+    SlackStoredInstallation,
+)
 
 
 class SlackRepositoryError(RuntimeError):
@@ -53,6 +57,91 @@ class SlackRepository:
             raise SlackRepositoryError(
                 "Supabase did not confirm the Slack installation"
             )
+
+    def is_organization_owner(self, owner_id: UUID, organization_id: UUID) -> bool:
+        try:
+            result = (
+                self.client.table("organization_members")
+                .select("user_id")
+                .eq("organization_id", str(organization_id))
+                .eq("user_id", str(owner_id))
+                .eq("role", "OWNER")
+                .limit(1)
+                .execute()
+            )
+        except Exception as exc:
+            raise SlackRepositoryError(
+                "Supabase could not verify the organization owner"
+            ) from exc
+        return isinstance(result.data, list) and len(result.data) == 1
+
+    def is_organization_member(self, user_id: UUID, organization_id: UUID) -> bool:
+        try:
+            result = (
+                self.client.table("organization_members")
+                .select("user_id")
+                .eq("organization_id", str(organization_id))
+                .eq("user_id", str(user_id))
+                .limit(1)
+                .execute()
+            )
+        except Exception as exc:
+            raise SlackRepositoryError(
+                "Supabase could not verify organization membership"
+            ) from exc
+        return isinstance(result.data, list) and len(result.data) == 1
+
+    def bind_organization_workspace(
+        self,
+        organization_id: UUID,
+        owner_id: UUID,
+        team_id: str,
+        workspace_name: str,
+        slack_user_id: str,
+        is_primary_owner: bool,
+    ) -> None:
+        try:
+            self.client.rpc(
+                "bind_organization_slack_workspace",
+                {
+                    "p_organization_id": str(organization_id),
+                    "p_owner_id": str(owner_id),
+                    "p_slack_team_id": team_id,
+                    "p_workspace_name": workspace_name,
+                    "p_slack_user_id": slack_user_id,
+                    "p_is_primary_owner": is_primary_owner,
+                },
+            ).execute()
+        except Exception as exc:
+            raise SlackRepositoryError(
+                "Supabase could not bind the Slack workspace"
+            ) from exc
+
+    def get_organization_binding(
+        self,
+        organization_id: UUID,
+    ) -> OrganizationSlackBindingStatus:
+        try:
+            result = (
+                self.client.table("organization_slack_workspaces")
+                .select("slack_team_id,workspace_name,verified_at")
+                .eq("organization_id", str(organization_id))
+                .limit(1)
+                .execute()
+            )
+        except Exception as exc:
+            raise SlackRepositoryError(
+                "Supabase could not load the organization Slack binding"
+            ) from exc
+        rows = result.data
+        if not isinstance(rows, list) or not rows:
+            return OrganizationSlackBindingStatus(connected=False)
+        return OrganizationSlackBindingStatus(
+            connected=True,
+            workspace_name=rows[0].get("workspace_name"),
+            slack_team_id=rows[0].get("slack_team_id"),
+            verified_at=rows[0].get("verified_at"),
+        )
 
     def get_connection_status(self, owner_id: UUID) -> str | None:
         try:

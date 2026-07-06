@@ -49,6 +49,7 @@ export function TicketModal({ ticket, isOpen, defaultStatus, onClose, onSave, on
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
+  const isAssignedTicket = Boolean(ticket && ticket.scope !== 'PRIVATE');
 
   useEffect(() => {
     setTitle(ticket?.title ?? '');
@@ -90,6 +91,18 @@ export function TicketModal({ ticket, isOpen, defaultStatus, onClose, onSave, on
       <DialogContent className="sm:max-w-lg">
         <DialogHeader><DialogTitle>{readOnly ? 'Ticket details' : ticket ? 'Edit ticket' : 'Create ticket'}</DialogTitle></DialogHeader>
         <div className="grid gap-4 py-3">
+          {isAssignedTicket && ticket && (
+            <div className="grid gap-3 rounded-lg border border-violet-100 bg-violet-50/60 p-3 sm:grid-cols-2">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-violet-500">Assigned by</p>
+                <p className="mt-1 text-sm font-medium text-slate-700">{ticket.requestedByName ?? 'Organization lead'}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-violet-500">Assigned to</p>
+                <p className="mt-1 text-sm font-medium text-slate-700">{ticket.assignee}</p>
+              </div>
+            </div>
+          )}
           <div className="grid gap-2">
             <Label htmlFor="ticket-title">Title</Label>
             <Input id="ticket-title" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="What needs to be done?" disabled={readOnly} />

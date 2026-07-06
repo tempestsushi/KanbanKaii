@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -18,6 +19,22 @@ class SlackAuthedUser(BaseModel):
     id: str
 
 
+class SlackUserInfo(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: str
+    is_owner: bool = False
+    is_primary_owner: bool = False
+
+
+class SlackUserInfoResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    ok: bool
+    error: str | None = None
+    user: SlackUserInfo | None = None
+
+
 class SlackOAuthAccessResponse(BaseModel):
     ok: bool
     error: str | None = None
@@ -33,6 +50,15 @@ class SlackConnectionStatus(BaseModel):
 
     connected: bool
     workspace_name: str | None = None
+
+
+class OrganizationSlackBindingStatus(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    connected: bool
+    workspace_name: str | None = None
+    slack_team_id: str | None = None
+    verified_at: datetime | None = None
 
 
 class SlackStoredInstallation(BaseModel):

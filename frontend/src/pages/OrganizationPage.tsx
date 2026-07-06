@@ -35,6 +35,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  getOrganizationSlackStatus,
+  startSlackConnection,
+  type OrganizationSlackBindingStatus,
+} from '@/integrations/slack/api';
 
 const roles: AssignableRole[] = ['TEAM_LEAD', 'MEMBER', 'VIEWER'];
 const roleLabel = (role: string) => role.replace('_', ' ').toLowerCase().replace(/^./, (letter) => letter.toUpperCase());
@@ -61,6 +66,13 @@ export function OrganizationPage() {
   const [isDeletingOrganization, setIsDeletingOrganization] = useState(false);
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const [isLeavingOrganization, setIsLeavingOrganization] = useState(false);
+  const [slackBinding, setSlackBinding] = useState<OrganizationSlackBindingStatus>({
+    connected: false,
+    workspace_name: null,
+    slack_team_id: null,
+    verified_at: null,
+  });
+  const [isConnectingSlack, setIsConnectingSlack] = useState(false);
 
   const currentMembership = useMemo(
     () => members.find((member) => member.user_id === user?.id),
@@ -83,12 +95,14 @@ export function OrganizationPage() {
       if (!active) {
         setMembers([]);
         setInvites([]);
+        setSlackBinding({ connected: false, workspace_name: null, slack_team_id: null, verified_at: null });
         return;
       }
       const loadedMembers = await listOrganizationMembers(active.id);
       setMembers(loadedMembers);
       const role = loadedMembers.find((member) => member.user_id === user?.id)?.role;
       setInvites(role === 'OWNER' || role === 'TEAM_LEAD' ? await listOrganizationInvites(active.id) : []);
+      setSlackBinding(await getOrganizationSlackStatus(active.id));
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Could not load organization');
     } finally {
@@ -97,6 +111,20 @@ export function OrganizationPage() {
   }, [user?.id]);
 
   useEffect(() => { void loadOrganization(); }, [loadOrganization]);
+
+  useEffect(() => {
+    const query = new URLSearchParams(window.location.search);
+    const result = query.get('slack');
+    if (result === 'organization_connected') {
+      toast.success('Slack workspace verified and connected to the organization');
+    } else if (result === 'error') {
+      const reason = query.get('reason');
+      toast.error(reason === 'workspace_owner_required'
+        ? 'Slack connection requires a Slack workspace owner account'
+        : `Slack connection failed: ${reason ?? 'unknown error'}`);
+    }
+    if (result) window.history.replaceState({}, '', window.location.pathname);
+  }, []);
 
   const submitOrganization = async (event: FormEvent) => {
     event.preventDefault();
@@ -212,6 +240,17 @@ export function OrganizationPage() {
     }
   };
 
+  const connectOrganizationSlack = async () => {
+    if (!organization || !isOwner || isConnectingSlack) return;
+    setIsConnectingSlack(true);
+    try {
+      window.location.assign(await startSlackConnection(organization.id));
+    } catch (connectError) {
+      toast.error(connectError instanceof Error ? connectError.message : 'Could not connect Slack');
+      setIsConnectingSlack(false);
+    }
+  };
+
   if (isLoading) return <AppLayout pageTitle="Organization"><div className="p-8 text-sm text-slate-500">Loading organization…</div></AppLayout>;
 
   if (!organization) {
@@ -241,6 +280,26 @@ export function OrganizationPage() {
         {error && <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
 
         {myInvitations.length > 0 && <section className="rounded-xl border border-violet-200 bg-white p-6 shadow-sm"><h2 className="text-sm font-semibold text-slate-800">Your invitations</h2><div className="mt-4 divide-y divide-slate-100">{myInvitations.map((invite) => <div key={invite.id} className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-semibold text-slate-800">{invite.organization_name}</p><p className="mt-1 text-xs text-slate-500">Invited as {roleLabel(invite.default_role)} · expires {new Date(invite.expires_at).toLocaleString()}</p></div><div className="flex gap-2"><Button size="sm" disabled={respondingInviteId === invite.id} onClick={() => void respondToInvitation(invite.id, true)}>Join</Button><Button size="sm" variant="outline" disabled={respondingInviteId === invite.id} onClick={() => void respondToInvitation(invite.id, false)}>Decline</Button></div></div>)}</div></section>}
+
+        <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-semibold text-slate-800">Organization Slack workspace</h2>
+                <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${slackBinding.connected ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                  {slackBinding.connected ? 'Verified' : 'Not connected'}
+                </span>
+              </div>
+              <p className="mt-1 text-xs leading-5 text-slate-500">
+                {slackBinding.connected
+                  ? `${slackBinding.workspace_name} · ${slackBinding.slack_team_id}`
+                  : 'Bind the formal organization board to one verified Slack workspace.'}
+              </p>
+              {!isOwner && !slackBinding.connected && <p className="mt-1 text-[11px] text-slate-400">Only the organization owner can establish this connection.</p>}
+            </div>
+            {isOwner && <Button type="button" variant="outline" disabled={isConnectingSlack} onClick={() => void connectOrganizationSlack()}>{isConnectingSlack ? 'Opening Slack…' : slackBinding.connected ? 'Reverify workspace' : 'Connect workspace'}</Button>}
+          </div>
+        </section>
 
         <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-sm font-semibold text-slate-800">Members <span className="text-slate-400">{members.length}</span></h2>
