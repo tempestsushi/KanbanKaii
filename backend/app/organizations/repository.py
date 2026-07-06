@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any, NoReturn
 from uuid import UUID
 
@@ -15,6 +16,9 @@ from app.organizations.schemas import (
     OrganizationMemberResponse,
     OrganizationResponse,
 )
+
+
+logger = logging.getLogger("kanbankaii.organizations.repository")
 
 
 class OrganizationRepositoryError(RuntimeError):
@@ -177,14 +181,28 @@ class OrganizationRepository:
 
     def list_my_invitations(self) -> list[MyOrganizationInvitation]:
         try:
-            result = self.client.rpc("list_my_organization_invitations").execute()
+            result = self.client.rpc(
+                "list_my_organization_invitations", {}
+            ).execute()
             return [
                 MyOrganizationInvitation.model_validate_json(json.dumps(row))
                 for row in result.data
             ]
         except (APIError, ValidationError, TypeError) as error:
             if isinstance(error, APIError):
+                logger.error(
+                    "Supabase invitation inbox failed code=%s message=%s details=%s hint=%s",
+                    error.code,
+                    error.message,
+                    error.details,
+                    error.hint,
+                )
+                if error.code in {"PGRST202", "42883"}:
+                    raise OrganizationRepositoryError(
+                        "Invitation inbox is not installed in Supabase. Apply migration 202607060015 and reload the Supabase schema cache."
+                    ) from error
                 _raise_database_error(error, "Supabase could not load your invitations")
+            logger.exception("Supabase returned invalid invitation inbox data")
             raise OrganizationRepositoryError("Supabase could not load your invitations") from error
 
     def accept_invite_by_id(self, invite_id: UUID) -> UUID:
