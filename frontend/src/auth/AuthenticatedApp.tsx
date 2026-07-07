@@ -1,6 +1,8 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { AuthProvider } from './AuthProvider';
 import { ProtectedRoute, PublicOnlyRoute } from './RouteGuards';
+import { AppLayout } from '@/components/layout/AppLayout';
+import { appNavigateEvent } from '@/lib/navigation';
 
 const AuthPage = lazy(() => import('@/pages/AuthPage').then((module) => ({ default: module.AuthPage })));
 const ResetPasswordPage = lazy(() => import('@/pages/ResetPasswordPage').then((module) => ({ default: module.ResetPasswordPage })));
@@ -23,9 +25,41 @@ function PageLoadingScreen() {
   );
 }
 
+function PageBodyLoading() {
+  return (
+    <div className="flex min-h-full items-center justify-center p-8">
+      <div className="flex items-center gap-3 rounded-full border border-violet-100 bg-white px-5 py-3 text-xs font-semibold text-violet-700 shadow-sm">
+        <span className="h-2 w-2 animate-pulse rounded-full bg-violet-500" />
+        Loading page…
+      </div>
+    </div>
+  );
+}
+
 export default function AuthenticatedApp() {
-  const pathname = window.location.pathname;
+  const [pathname, setPathname] = useState(window.location.pathname);
+  const pageTitle = useMemo(() => {
+    if (pathname === '/analytics') return 'Analytics';
+    if (pathname === '/profile') return 'Profile';
+    if (pathname === '/settings') return 'Settings';
+    if (pathname === '/organization') return 'Organization';
+    if (pathname === '/organization-board') return 'Organization board';
+    return 'Kanban dashboard';
+  }, [pathname]);
+
+  useEffect(() => {
+    const syncPath = () => setPathname(window.location.pathname);
+    const handleNavigate = () => syncPath();
+    window.addEventListener('popstate', syncPath);
+    window.addEventListener(appNavigateEvent, handleNavigate);
+    return () => {
+      window.removeEventListener('popstate', syncPath);
+      window.removeEventListener(appNavigateEvent, handleNavigate);
+    };
+  }, []);
+
   let page;
+  let isProtectedPage = false;
 
   if (pathname.startsWith('/join/')) {
     page = <JoinOrganizationPage />;
@@ -37,22 +71,28 @@ export default function AuthenticatedApp() {
       page = <ResetPasswordPage />;
       break;
     case '/dashboard':
-      page = <ProtectedRoute><DashboardPage /></ProtectedRoute>;
+      isProtectedPage = true;
+      page = <DashboardPage />;
       break;
     case '/analytics':
-      page = <ProtectedRoute><AnalyticsPage /></ProtectedRoute>;
+      isProtectedPage = true;
+      page = <AnalyticsPage />;
       break;
     case '/profile':
-      page = <ProtectedRoute><ProfilePage /></ProtectedRoute>;
+      isProtectedPage = true;
+      page = <ProfilePage />;
       break;
     case '/settings':
-      page = <ProtectedRoute><SettingsPage /></ProtectedRoute>;
+      isProtectedPage = true;
+      page = <SettingsPage />;
       break;
     case '/organization':
-      page = <ProtectedRoute><OrganizationPage /></ProtectedRoute>;
+      isProtectedPage = true;
+      page = <OrganizationPage />;
       break;
     case '/organization-board':
-      page = <ProtectedRoute><OrganizationBoardPage /></ProtectedRoute>;
+      isProtectedPage = true;
+      page = <OrganizationBoardPage />;
       break;
     default:
       window.location.replace('/');
@@ -61,9 +101,15 @@ export default function AuthenticatedApp() {
 
   return (
     <AuthProvider>
-      <Suspense fallback={<PageLoadingScreen />}>
-        {page}
-      </Suspense>
+      {isProtectedPage ? (
+        <ProtectedRoute>
+          <AppLayout pageTitle={pageTitle}>
+            <Suspense fallback={<PageBodyLoading />}>{page}</Suspense>
+          </AppLayout>
+        </ProtectedRoute>
+      ) : (
+        <Suspense fallback={<PageLoadingScreen />}>{page}</Suspense>
+      )}
     </AuthProvider>
   );
 }

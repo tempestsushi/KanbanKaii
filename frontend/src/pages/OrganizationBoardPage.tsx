@@ -10,7 +10,6 @@ import {
 } from '@/api/organizations';
 import { useAuth } from '@/auth/AuthContext';
 import { KanbanBoard } from '@/components/KanbanBoard';
-import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 
 const selectedViewStorageKey = (organizationId: string, userId: string | undefined) =>
@@ -95,27 +94,25 @@ export function OrganizationBoardPage() {
   };
 
   if (isLoading) {
-    return <AppLayout pageTitle="Organization board"><div className="p-8 text-sm text-slate-500">Loading organization board…</div></AppLayout>;
+    return <div className="p-8 text-sm text-slate-500">Loading organization board…</div>;
   }
 
   if (error) {
-    return <AppLayout pageTitle="Organization board"><div className="p-8"><p className="text-sm text-red-600">{error}</p><Button className="mt-4" variant="outline" onClick={() => void loadOrganization()}>Retry</Button></div></AppLayout>;
+    return <div className="p-8"><p className="text-sm text-red-600">{error}</p><Button className="mt-4" variant="outline" onClick={() => void loadOrganization()}>Retry</Button></div>;
   }
 
   if (!organization || !role) {
     return (
-      <AppLayout pageTitle="Organization board">
-        <div className="mx-auto max-w-xl p-8 text-center">
-          <h1 className="text-xl font-semibold text-slate-900">No organization workspace yet</h1>
-          <p className="mt-2 text-sm text-slate-500">Create or join an organization before opening its shared board.</p>
-          <a href="/organization" className="mt-5 inline-flex rounded-md bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700">Open organization settings</a>
-        </div>
-      </AppLayout>
+      <div className="mx-auto max-w-xl p-8 text-center">
+        <h1 className="text-xl font-semibold text-slate-900">No organization workspace yet</h1>
+        <p className="mt-2 text-sm text-slate-500">Create or join an organization before opening its shared board.</p>
+        <a href="/organization" className="mt-5 inline-flex rounded-md bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700">Open organization settings</a>
+      </div>
     );
   }
 
   return (
-    <AppLayout pageTitle={`${organization.name} board`}>
+    <>
       <div className="flex flex-col gap-3 border-b border-slate-200 bg-violet-50 px-4 py-3 text-xs text-violet-700 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div>
           <span className="font-semibold">{organization.name}</span>
@@ -160,6 +157,6 @@ export function OrganizationBoardPage() {
           />
         </>
       )}
-    </AppLayout>
+    </>
   );
 }

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { fetchTickets } from '@/api/tickets';
-import { AppLayout } from '@/components/layout/AppLayout';
 import type { Ticket, TicketPriority, TicketStatus } from '@/types/ticket';
 
 const priorityColors: Record<TicketPriority, string> = {
@@ -111,8 +110,7 @@ export function AnalyticsPage() {
   }, [tickets]);
 
   return (
-    <AppLayout pageTitle="Analytics">
-      <div className="mx-auto max-w-6xl p-5 sm:p-8">
+    <div className="mx-auto max-w-6xl p-5 sm:p-8">
         <div className="mb-7 flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-semibold text-slate-900">Workspace analytics</h1>
@@ -195,7 +193,6 @@ export function AnalyticsPage() {
             </section>
           </>
         )}
-      </div>
-    </AppLayout>
+    </div>
   );
 }

@@ -35,7 +35,6 @@ import {
   type MyOrganizationInvitation,
 } from '@/api/organizations';
 import { useAuth } from '@/auth/AuthContext';
-import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -484,12 +483,11 @@ export function OrganizationPage() {
     }
   };
 
-  if (isLoading) return <AppLayout pageTitle="Organization"><div className="p-8 text-sm text-slate-500">Loading organization…</div></AppLayout>;
+  if (isLoading) return <div className="p-8 text-sm text-slate-500">Loading organization…</div>;
 
   if (!organization) {
     return (
-      <AppLayout pageTitle="Organization">
-        <div className="mx-auto max-w-xl space-y-6 p-5 sm:p-8">
+      <div className="mx-auto max-w-xl space-y-6 p-5 sm:p-8">
           {myInvitations.length > 0 && <section className="rounded-xl border border-violet-200 bg-white p-6 shadow-sm"><h2 className="text-sm font-semibold text-slate-800">Your invitations</h2><p className="mt-1 text-xs text-slate-500">Organizations that invited your signed-in email address.</p><div className="mt-4 divide-y divide-slate-100">{myInvitations.map((invite) => <div key={invite.id} className="py-4"><p className="text-sm font-semibold text-slate-800">{invite.organization_name}</p><p className="mt-1 text-xs text-slate-500">Invited as {roleLabel(invite.default_role)} · expires {new Date(invite.expires_at).toLocaleString()}</p><div className="mt-3 flex gap-2"><Button size="sm" disabled={respondingInviteId === invite.id} onClick={() => void respondToInvitation(invite.id, true)}>{respondingInviteId === invite.id ? 'Joining…' : 'Join organization'}</Button><Button size="sm" variant="outline" disabled={respondingInviteId === invite.id} onClick={() => void respondToInvitation(invite.id, false)}>Decline</Button></div></div>)}</div></section>}
           <div>
           <h1 className="text-2xl font-semibold text-slate-900">Create your organization</h1>
@@ -501,13 +499,12 @@ export function OrganizationPage() {
             <Button disabled={isSaving || name.trim().length < 2 || slug.length < 2}>{isSaving ? 'Creating…' : 'Create organization'}</Button>
           </form>
           </div>
-        </div>
-      </AppLayout>
+      </div>
     );
   }
 
   return (
-    <AppLayout pageTitle="Organization">
+    <>
       <div className="mx-auto max-w-5xl space-y-6 p-5 sm:p-8">
         <section><p className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-600">{currentMembership ? roleLabel(currentMembership.role) : 'Member'}</p><h1 className="mt-1 text-2xl font-semibold text-slate-900">{organization.name}</h1><p className="mt-1 text-sm text-slate-500">Manage membership and invitation access for this workspace.</p></section>
         {error && <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
@@ -923,6 +920,6 @@ export function OrganizationPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </AppLayout>
+    </>
   );
 }

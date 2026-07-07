@@ -6,7 +6,6 @@ import {
   type NotificationSettings,
 } from '@/api/settings';
 import { useAuth } from '@/auth/AuthContext';
-import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { SlackIntegrationCard } from '@/integrations/slack/SlackIntegrationCard';
 
@@ -93,8 +92,7 @@ export function SettingsPage() {
   };
 
   return (
-    <AppLayout pageTitle="Settings">
-      <div className="mx-auto max-w-3xl p-5 sm:p-8">
+    <div className="mx-auto max-w-3xl p-5 sm:p-8">
         <h1 className="text-2xl font-semibold text-slate-900">Workspace settings</h1>
         <p className="mt-1 text-sm text-slate-500">Control notifications and external connections.</p>
 
@@ -125,7 +123,6 @@ export function SettingsPage() {
             />
           </div>
         </section>
-      </div>
-    </AppLayout>
+    </div>
   );
 }

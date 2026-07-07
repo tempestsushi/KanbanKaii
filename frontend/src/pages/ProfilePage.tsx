@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
 import { updateProfile } from '@/api/profile';
 import { useAuth } from '@/auth/AuthContext';
-import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -52,8 +51,7 @@ export function ProfilePage() {
   };
 
   return (
-    <AppLayout pageTitle="Profile">
-      <div className="mx-auto max-w-3xl p-5 sm:p-8">
+    <div className="mx-auto max-w-3xl p-5 sm:p-8">
         <h1 className="text-2xl font-semibold text-slate-900">Your profile</h1>
         <p className="mt-1 text-sm text-slate-500">Manage how you appear in this workspace.</p>
 
@@ -109,7 +107,6 @@ export function ProfilePage() {
             </div>
           </form>
         </section>
-      </div>
-    </AppLayout>
+    </div>
   );
 }

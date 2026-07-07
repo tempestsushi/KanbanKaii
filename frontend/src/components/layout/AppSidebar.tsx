@@ -1,5 +1,7 @@
 import { BarChart3, Building2, Columns3, Home } from 'lucide-react';
+import type { MouseEvent } from 'react';
 import { cn } from '@/lib/utils';
+import { navigateTo } from '@/lib/navigation';
 
 const navigation = [
   { label: 'Home', href: '/dashboard', icon: Home },
@@ -10,6 +12,10 @@ const navigation = [
 
 export function AppSidebar() {
   const pathname = window.location.pathname;
+  const openRoute = (event: MouseEvent<HTMLAnchorElement>, href: string) => {
+    event.preventDefault();
+    navigateTo(href);
+  };
 
   return (
     <aside className="flex w-14 shrink-0 flex-col border-r border-slate-200 bg-white sm:w-56">
@@ -32,6 +38,7 @@ export function AppSidebar() {
             <a
               key={label}
               href={href}
+              onClick={(event) => openRoute(event, href)}
               aria-label={label}
               title={label}
               aria-current={active ? 'page' : undefined}

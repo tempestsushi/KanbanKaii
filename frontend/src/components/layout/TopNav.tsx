@@ -1,9 +1,10 @@
 import { Bell, UserRound } from 'lucide-react';
-import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
+import { useEffect, useRef, useState, type MouseEvent, type SyntheticEvent } from 'react';
 import { useAuth } from '@/auth/AuthContext';
 import { fetchTickets } from '@/api/tickets';
 import type { Ticket } from '@/types/ticket';
 import { BackendStatus } from './BackendStatus';
+import { navigateTo } from '@/lib/navigation';
 
 interface TopNavProps {
   pageTitle: string;
@@ -48,6 +49,13 @@ export function TopNav({ pageTitle }: TopNavProps) {
     } finally {
       setIsSigningOut(false);
     }
+  };
+
+  const openRoute = (event: MouseEvent<HTMLAnchorElement>, path: string) => {
+    event.preventDefault();
+    navigateTo(path);
+    if (notificationsMenuRef.current) notificationsMenuRef.current.open = false;
+    if (profileMenuRef.current) profileMenuRef.current.open = false;
   };
 
   const loadNotifications = async () => {
@@ -173,7 +181,7 @@ export function TopNav({ pageTitle }: TopNavProps) {
               {!notificationsLoading && !notificationsError && notifications.map((ticket) => {
                 const isUnread = !ticket.createdAt || new Date(ticket.createdAt).getTime() > notificationsReadAt;
                 return (
-                <a key={ticket.id} href="/dashboard" className={`block px-4 py-3 hover:bg-slate-50 ${isUnread ? 'bg-violet-50/40' : ''}`}>
+                <a key={ticket.id} href="/dashboard" onClick={(event) => openRoute(event, '/dashboard')} className={`block px-4 py-3 hover:bg-slate-50 ${isUnread ? 'bg-violet-50/40' : ''}`}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 items-start gap-2">
                       {isUnread && <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-violet-500" />}
@@ -201,10 +209,10 @@ export function TopNav({ pageTitle }: TopNavProps) {
               <p className="truncate text-xs font-semibold text-slate-800">{displayName}</p>
               <p className="mt-0.5 truncate text-[10px] text-slate-400">{user?.email}</p>
             </div>
-            <a href="/profile" className="mt-1 block rounded-md px-3 py-2 text-xs font-medium text-slate-600 hover:bg-violet-50 hover:text-violet-700">
+            <a href="/profile" onClick={(event) => openRoute(event, '/profile')} className="mt-1 block rounded-md px-3 py-2 text-xs font-medium text-slate-600 hover:bg-violet-50 hover:text-violet-700">
               Profile
             </a>
-            <a href="/settings" className="block rounded-md px-3 py-2 text-xs font-medium text-slate-600 hover:bg-violet-50 hover:text-violet-700">
+            <a href="/settings" onClick={(event) => openRoute(event, '/settings')} className="block rounded-md px-3 py-2 text-xs font-medium text-slate-600 hover:bg-violet-50 hover:text-violet-700">
               Settings
             </a>
             <button
