@@ -18,6 +18,7 @@ class FakeSlackRepository:
         self.states = []
         self.sender_owner_id = None
         self.assignment_context = None
+        self.board_binding = None
 
     def update_webhook_delivery(
         self,
@@ -43,6 +44,10 @@ class FakeSlackRepository:
     ):
         self.assignment_lookup = (team_id, assigner_user_id, assignee_user_id)
         return self.assignment_context
+
+    def find_board_channel_binding(self, organization_id, team_id, channel_id):
+        self.board_binding_lookup = (organization_id, team_id, channel_id)
+        return self.board_binding
 
 
 class FakeTicketRepository:
@@ -241,6 +246,58 @@ class SlackEventProcessorTests(TestCase):
         self.assertEqual(ticket.source_channel_id, "C123")
         self.assertEqual(ticket.source_message_ts, "123.456")
         self.assertEqual(slack_repository.states[-1][4][0]["scope"], "ORGANIZATION")
+
+    def test_mapped_slack_channel_scopes_organization_ticket_to_project_board(self) -> None:
+        assigner_id = uuid4()
+        assignee_id = uuid4()
+        organization_id = uuid4()
+        board_id = uuid4()
+        slack_repository = FakeSlackRepository()
+        slack_repository.sender_owner_id = assigner_id
+        slack_repository.assignment_context = SlackOrganizationAssignmentContext(
+            organization_id=organization_id,
+            assigner_role="OWNER",
+            assignee_role="MEMBER",
+        )
+        slack_repository.board_binding = SimpleNamespace(
+            organization_id=organization_id,
+            board_id=board_id,
+            slack_team_id="T123",
+            slack_channel_id="C123",
+        )
+        tickets = FakeTicketRepository()
+        processor = SlackEventProcessor(
+            slack_repository,
+            tickets,
+            FakeOllamaService(),
+            FakeSlackUserService(),
+        )
+
+        asyncio.run(
+            processor.process(
+                "Ev-board",
+                "T123",
+                SlackEvent(
+                    type="message",
+                    user="U-SENDER",
+                    text="<@U-CONNECTED> fix the backend queue",
+                    channel="C123",
+                    channel_type="channel",
+                    ts="111.222",
+                ),
+                [SlackMentionTarget(assignee_id, "U-CONNECTED")],
+            )
+        )
+
+        ticket = tickets.created[0]
+        self.assertEqual(ticket.scope, "ORGANIZATION")
+        self.assertEqual(ticket.organization_id, organization_id)
+        self.assertEqual(ticket.board_id, board_id)
+        self.assertEqual(
+            slack_repository.board_binding_lookup,
+            (organization_id, "T123", "C123"),
+        )
+        self.assertEqual(slack_repository.states[-1][4][0]["board_id"], str(board_id))
 
     def test_lead_assignment_in_private_channel_creates_organization_ticket(self) -> None:
         assigner_id = uuid4()

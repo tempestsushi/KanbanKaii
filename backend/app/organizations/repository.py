@@ -14,6 +14,7 @@ from app.organizations.schemas import (
     AssignableBoardRole,
     MyOrganizationInvitation,
     OrganizationBoardMemberResponse,
+    OrganizationBoardSlackChannelResponse,
     OrganizationBoardResponse,
     OrganizationInviteResponse,
     OrganizationMemberResponse,
@@ -245,6 +246,84 @@ class OrganizationRepository:
             ).execute()
         except APIError as error:
             _raise_database_error(error, "Supabase could not remove the board member")
+
+    def list_board_slack_channels(
+        self,
+        organization_id: UUID,
+        board_id: UUID,
+    ) -> list[OrganizationBoardSlackChannelResponse]:
+        try:
+            result = (
+                self.client.table("organization_board_slack_channels")
+                .select("*")
+                .eq("organization_id", str(organization_id))
+                .eq("board_id", str(board_id))
+                .order("created_at", desc=True)
+                .execute()
+            )
+            return [
+                OrganizationBoardSlackChannelResponse.model_validate_json(json.dumps(row))
+                for row in result.data
+            ]
+        except (APIError, ValidationError, TypeError) as error:
+            if isinstance(error, APIError):
+                _raise_database_error(error, "Supabase could not load board Slack channels")
+            raise OrganizationRepositoryError(
+                "Supabase could not load board Slack channels"
+            ) from error
+
+    def add_board_slack_channel(
+        self,
+        organization_id: UUID,
+        board_id: UUID,
+        slack_team_id: str,
+        slack_channel_id: str,
+        slack_channel_name: str | None,
+    ) -> OrganizationBoardSlackChannelResponse:
+        try:
+            self.client.rpc(
+                "upsert_organization_board_slack_channel",
+                {
+                    "p_organization_id": str(organization_id),
+                    "p_board_id": str(board_id),
+                    "p_slack_team_id": slack_team_id,
+                    "p_slack_channel_id": slack_channel_id,
+                    "p_slack_channel_name": slack_channel_name or "",
+                },
+            ).execute()
+        except APIError as error:
+            _raise_database_error(error, "Supabase could not save the board Slack channel")
+        channels = [
+            channel
+            for channel in self.list_board_slack_channels(organization_id, board_id)
+            if channel.slack_team_id == slack_team_id
+            and channel.slack_channel_id == slack_channel_id
+        ]
+        if len(channels) != 1:
+            raise OrganizationRepositoryError(
+                "Supabase did not return the board Slack channel"
+            )
+        return channels[0]
+
+    def remove_board_slack_channel(
+        self,
+        organization_id: UUID,
+        board_id: UUID,
+        slack_team_id: str,
+        slack_channel_id: str,
+    ) -> None:
+        try:
+            self.client.rpc(
+                "remove_organization_board_slack_channel",
+                {
+                    "p_organization_id": str(organization_id),
+                    "p_board_id": str(board_id),
+                    "p_slack_team_id": slack_team_id,
+                    "p_slack_channel_id": slack_channel_id,
+                },
+            ).execute()
+        except APIError as error:
+            _raise_database_error(error, "Supabase could not remove the board Slack channel")
 
     def change_role(self, organization_id: UUID, user_id: UUID, role: AssignableRole) -> OrganizationMemberResponse:
         try:

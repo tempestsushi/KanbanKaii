@@ -34,6 +34,14 @@ class SlackOrganizationAssignmentContext:
     assignee_role: str
 
 
+@dataclass(frozen=True)
+class SlackBoardChannelBinding:
+    organization_id: UUID
+    board_id: UUID
+    slack_team_id: str
+    slack_channel_id: str
+
+
 class SlackRepository:
     def __init__(self, client: Client) -> None:
         self.client = client
@@ -507,6 +515,50 @@ class SlackRepository:
             assigner_role=assigner_role,
             assignee_role=assignee_role,
         )
+
+    def find_board_channel_binding(
+        self,
+        organization_id: UUID,
+        team_id: str,
+        channel_id: str | None,
+    ) -> SlackBoardChannelBinding | None:
+        """Return a project board mapped to this Slack channel, if configured."""
+        if not channel_id:
+            return None
+        try:
+            result = (
+                self.client.table("organization_board_slack_channels")
+                .select("organization_id,board_id,slack_team_id,slack_channel_id")
+                .eq("organization_id", str(organization_id))
+                .eq("slack_team_id", team_id)
+                .eq("slack_channel_id", channel_id)
+                .limit(1)
+                .execute()
+            )
+        except Exception as exc:
+            raise SlackRepositoryError(
+                "Supabase could not resolve the Slack board channel mapping"
+            ) from exc
+
+        rows: Any = result.data
+        if not isinstance(rows, list):
+            raise SlackRepositoryError(
+                "Supabase returned an invalid Slack board channel mapping"
+            )
+        if not rows:
+            return None
+        try:
+            row = rows[0]
+            return SlackBoardChannelBinding(
+                organization_id=UUID(str(row["organization_id"])),
+                board_id=UUID(str(row["board_id"])),
+                slack_team_id=str(row["slack_team_id"]),
+                slack_channel_id=str(row["slack_channel_id"]),
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise SlackRepositoryError(
+                "Supabase returned an invalid Slack board channel mapping"
+            ) from exc
 
     def update_webhook_delivery(
         self,

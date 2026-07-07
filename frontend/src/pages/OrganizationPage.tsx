@@ -4,6 +4,7 @@ import {
   changeOrganizationMemberRole,
   acceptMyOrganizationInvitation,
   addOrganizationBoardMember,
+  addOrganizationBoardSlackChannel,
   changeOrganizationBoardMemberRole,
   createOrganization,
   createOrganizationBoard,
@@ -12,6 +13,7 @@ import {
   deleteOrganization,
   declineMyOrganizationInvitation,
   listOrganizationBoardMembers,
+  listOrganizationBoardSlackChannels,
   listOrganizationBoards,
   listOrganizationInvites,
   listOrganizationMembers,
@@ -19,12 +21,14 @@ import {
   listMyOrganizationInvitations,
   leaveOrganization,
   removeOrganizationBoardMember,
+  removeOrganizationBoardSlackChannel,
   removeOrganizationMember,
   revokeOrganizationInvite,
   type AssignableRole,
   type Organization,
   type OrganizationBoard,
   type OrganizationBoardMember,
+  type OrganizationBoardSlackChannel,
   type OrganizationBoardRole,
   type OrganizationInvite,
   type OrganizationMember,
@@ -66,6 +70,7 @@ export function OrganizationPage() {
   const [boards, setBoards] = useState<OrganizationBoard[]>([]);
   const [selectedBoardId, setSelectedBoardId] = useState<string | null>(null);
   const [boardMembers, setBoardMembers] = useState<OrganizationBoardMember[]>([]);
+  const [boardSlackChannels, setBoardSlackChannels] = useState<OrganizationBoardSlackChannel[]>([]);
   const [invites, setInvites] = useState<OrganizationInvite[]>([]);
   const [myInvitations, setMyInvitations] = useState<MyOrganizationInvitation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -79,12 +84,15 @@ export function OrganizationPage() {
   const [boardSlugEdited, setBoardSlugEdited] = useState(false);
   const [boardMemberUserId, setBoardMemberUserId] = useState('');
   const [boardMemberRole, setBoardMemberRole] = useState<OrganizationBoardRole>('MEMBER');
+  const [slackChannelId, setSlackChannelId] = useState('');
+  const [slackChannelName, setSlackChannelName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<AssignableRole>('MEMBER');
   const [respondingInviteId, setRespondingInviteId] = useState<string | null>(null);
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
   const [confirmBoardDelete, setConfirmBoardDelete] = useState<string | null>(null);
   const [confirmBoardMemberRemove, setConfirmBoardMemberRemove] = useState<string | null>(null);
+  const [confirmSlackChannelRemove, setConfirmSlackChannelRemove] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [isDeletingOrganization, setIsDeletingOrganization] = useState(false);
@@ -139,6 +147,7 @@ export function OrganizationPage() {
         setBoards([]);
         setSelectedBoardId(null);
         setBoardMembers([]);
+        setBoardSlackChannels([]);
         setInvites([]);
         setSlackBinding({ connected: false, workspace_name: null, slack_team_id: null, verified_at: null });
         return;
@@ -151,7 +160,14 @@ export function OrganizationPage() {
       setBoards(loadedBoards);
       const nextBoardId = loadedBoards[0]?.id ?? null;
       setSelectedBoardId(nextBoardId);
-      setBoardMembers(nextBoardId ? await listOrganizationBoardMembers(active.id, nextBoardId) : []);
+      const [loadedBoardMembers, loadedBoardSlackChannels] = nextBoardId
+        ? await Promise.all([
+            listOrganizationBoardMembers(active.id, nextBoardId),
+            listOrganizationBoardSlackChannels(active.id, nextBoardId),
+          ])
+        : [[], []];
+      setBoardMembers(loadedBoardMembers);
+      setBoardSlackChannels(loadedBoardSlackChannels);
       const role = loadedMembers.find((member) => member.user_id === user?.id)?.role;
       setInvites(role === 'OWNER' || role === 'TEAM_LEAD' ? await listOrganizationInvites(active.id) : []);
       setSlackBinding(await getOrganizationSlackStatus(active.id));
@@ -214,8 +230,14 @@ export function OrganizationPage() {
     setSelectedBoardId(boardId);
     setConfirmBoardDelete(null);
     setConfirmBoardMemberRemove(null);
+    setConfirmSlackChannelRemove(null);
     try {
-      setBoardMembers(await listOrganizationBoardMembers(organization.id, boardId));
+      const [loadedBoardMembers, loadedBoardSlackChannels] = await Promise.all([
+        listOrganizationBoardMembers(organization.id, boardId),
+        listOrganizationBoardSlackChannels(organization.id, boardId),
+      ]);
+      setBoardMembers(loadedBoardMembers);
+      setBoardSlackChannels(loadedBoardSlackChannels);
     } catch (boardError) {
       toast.error(boardError instanceof Error ? boardError.message : 'Could not load board members');
     }
@@ -238,6 +260,7 @@ export function OrganizationPage() {
       setBoards(loadedBoards);
       setSelectedBoardId(board.id);
       setBoardMembers(await listOrganizationBoardMembers(organization.id, board.id));
+      setBoardSlackChannels(await listOrganizationBoardSlackChannels(organization.id, board.id));
       toast.success('Project board created');
     } catch (boardError) {
       toast.error(boardError instanceof Error ? boardError.message : 'Could not create board');
@@ -296,6 +319,51 @@ export function OrganizationPage() {
     }
   };
 
+  const addSlackChannelMapping = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!organization || !selectedBoard || !slackBinding.slack_team_id) return;
+    setIsSaving(true);
+    try {
+      await addOrganizationBoardSlackChannel(
+        organization.id,
+        selectedBoard.id,
+        slackBinding.slack_team_id,
+        slackChannelId.trim(),
+        slackChannelName.trim() || undefined,
+      );
+      setSlackChannelId('');
+      setSlackChannelName('');
+      setBoardSlackChannels(await listOrganizationBoardSlackChannels(organization.id, selectedBoard.id));
+      toast.success('Slack channel linked to project board');
+    } catch (channelError) {
+      toast.error(channelError instanceof Error ? channelError.message : 'Could not link Slack channel');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const removeSlackChannelMapping = async (channel: OrganizationBoardSlackChannel) => {
+    if (!organization || !selectedBoard) return;
+    try {
+      await removeOrganizationBoardSlackChannel(
+        organization.id,
+        selectedBoard.id,
+        channel.slack_team_id,
+        channel.slack_channel_id,
+      );
+      setBoardSlackChannels((items) =>
+        items.filter((item) =>
+          item.slack_team_id !== channel.slack_team_id
+          || item.slack_channel_id !== channel.slack_channel_id,
+        ),
+      );
+      setConfirmSlackChannelRemove(null);
+      toast.success('Slack channel unlinked');
+    } catch (channelError) {
+      toast.error(channelError instanceof Error ? channelError.message : 'Could not unlink Slack channel');
+    }
+  };
+
   const removeBoard = async (boardId: string) => {
     if (!organization) return;
     try {
@@ -304,7 +372,14 @@ export function OrganizationPage() {
       const nextBoardId = loadedBoards[0]?.id ?? null;
       setBoards(loadedBoards);
       setSelectedBoardId(nextBoardId);
-      setBoardMembers(nextBoardId ? await listOrganizationBoardMembers(organization.id, nextBoardId) : []);
+      const [loadedBoardMembers, loadedBoardSlackChannels] = nextBoardId
+        ? await Promise.all([
+            listOrganizationBoardMembers(organization.id, nextBoardId),
+            listOrganizationBoardSlackChannels(organization.id, nextBoardId),
+          ])
+        : [[], []];
+      setBoardMembers(loadedBoardMembers);
+      setBoardSlackChannels(loadedBoardSlackChannels);
       setConfirmBoardDelete(null);
       toast.success('Project board deleted');
     } catch (boardError) {
@@ -566,6 +641,80 @@ export function OrganizationPage() {
                       <Button disabled={isSaving || !boardMemberUserId}>Add member</Button>
                     </form>
                   )}
+
+                  <div className="rounded-lg border border-slate-100 bg-slate-50/70 p-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <h4 className="text-xs font-semibold text-slate-700">Slack channel mapping</h4>
+                        <p className="mt-1 text-[11px] leading-5 text-slate-500">
+                          Messages from a linked Slack channel will create organization tickets directly inside this project board.
+                        </p>
+                      </div>
+                      {slackBinding.connected && (
+                        <span className="rounded-full bg-violet-50 px-2.5 py-1 text-[10px] font-semibold text-violet-700">
+                          {slackBinding.slack_team_id}
+                        </span>
+                      )}
+                    </div>
+
+                    {canManageSelectedBoard && slackBinding.connected && slackBinding.slack_team_id && (
+                      <form onSubmit={addSlackChannelMapping} className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+                        <Input
+                          value={slackChannelId}
+                          onChange={(event) => setSlackChannelId(event.target.value)}
+                          placeholder="Slack channel ID, e.g. C0123ABC"
+                          required
+                        />
+                        <Input
+                          value={slackChannelName}
+                          onChange={(event) => setSlackChannelName(event.target.value)}
+                          placeholder="Optional channel name"
+                        />
+                        <Button disabled={isSaving || !slackChannelId.trim()}>
+                          Link channel
+                        </Button>
+                      </form>
+                    )}
+
+                    {!slackBinding.connected && (
+                      <p className="mt-3 rounded-md bg-white px-3 py-2 text-[11px] text-slate-500">
+                        Connect the organization Slack workspace before linking channels to project boards.
+                      </p>
+                    )}
+
+                    <div className="mt-3 divide-y divide-slate-200/80">
+                      {boardSlackChannels.map((channel) => {
+                        const key = `${channel.slack_team_id}:${channel.slack_channel_id}`;
+                        return (
+                          <div key={key} className="flex flex-col gap-2 py-2 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <p className="text-xs font-medium text-slate-700">
+                                {channel.slack_channel_name || channel.slack_channel_id}
+                              </p>
+                              <p className="mt-0.5 text-[10px] text-slate-400">
+                                {channel.slack_team_id} · {channel.slack_channel_id}
+                              </p>
+                            </div>
+                            {canManageSelectedBoard && (
+                              confirmSlackChannelRemove === key ? (
+                                <div className="flex gap-2">
+                                  <button className="text-xs font-semibold text-red-600" onClick={() => void removeSlackChannelMapping(channel)}>Confirm</button>
+                                  <button className="text-xs text-slate-500" onClick={() => setConfirmSlackChannelRemove(null)}>Cancel</button>
+                                </div>
+                              ) : (
+                                <button className="text-xs font-semibold text-slate-400 hover:text-red-600" onClick={() => setConfirmSlackChannelRemove(key)}>Unlink</button>
+                              )
+                            )}
+                          </div>
+                        );
+                      })}
+                      {boardSlackChannels.length === 0 && (
+                        <p className="py-3 text-center text-[11px] text-slate-500">
+                          No Slack channels linked to this board yet.
+                        </p>
+                      )}
+                    </div>
+                  </div>
 
                   <div className="divide-y divide-slate-100">
                     {boardMembers.map((member) => {

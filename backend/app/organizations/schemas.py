@@ -100,6 +100,26 @@ class OrganizationBoardMemberResponse(BaseModel):
     avatar_url: str | None = Field(default=None, max_length=2048)
 
 
+class OrganizationBoardSlackChannelCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, str_strip_whitespace=True)
+
+    slack_team_id: str = Field(min_length=1, max_length=255)
+    slack_channel_id: str = Field(min_length=1, max_length=255)
+    slack_channel_name: str | None = Field(default=None, min_length=1, max_length=255)
+
+
+class OrganizationBoardSlackChannelResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    organization_id: UUID
+    board_id: UUID
+    slack_team_id: str
+    slack_channel_id: str
+    slack_channel_name: str | None = None
+    created_by: UUID | None = None
+    created_at: datetime
+
+
 class OrganizationInviteCreate(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, str_strip_whitespace=True)
 

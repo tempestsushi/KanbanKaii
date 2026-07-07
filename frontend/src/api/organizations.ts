@@ -46,6 +46,16 @@ export interface OrganizationBoardMember {
   avatar_url: string | null;
 }
 
+export interface OrganizationBoardSlackChannel {
+  organization_id: string;
+  board_id: string;
+  slack_team_id: string;
+  slack_channel_id: string;
+  slack_channel_name: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
 export interface OrganizationInvite {
   id: string;
   organization_id: string;
@@ -113,6 +123,9 @@ export const listOrganizationBoardMembers = (id: string, boardId: string) => api
 export const addOrganizationBoardMember = (id: string, boardId: string, userId: string, role: OrganizationBoardRole = 'MEMBER') => apiRequest<OrganizationBoardMember>(`/api/organizations/${id}/boards/${boardId}/members`, { method: 'POST', body: JSON.stringify({ user_id: userId, role }) });
 export const changeOrganizationBoardMemberRole = (id: string, boardId: string, userId: string, role: OrganizationBoardRole) => apiRequest<OrganizationBoardMember>(`/api/organizations/${id}/boards/${boardId}/members/${userId}/role`, { method: 'PATCH', body: JSON.stringify({ role }) });
 export const removeOrganizationBoardMember = (id: string, boardId: string, userId: string) => apiRequest<void>(`/api/organizations/${id}/boards/${boardId}/members/${userId}`, { method: 'DELETE' });
+export const listOrganizationBoardSlackChannels = (id: string, boardId: string) => apiRequest<OrganizationBoardSlackChannel[]>(`/api/organizations/${id}/boards/${boardId}/slack-channels`);
+export const addOrganizationBoardSlackChannel = (id: string, boardId: string, slackTeamId: string, slackChannelId: string, slackChannelName?: string) => apiRequest<OrganizationBoardSlackChannel>(`/api/organizations/${id}/boards/${boardId}/slack-channels`, { method: 'POST', body: JSON.stringify({ slack_team_id: slackTeamId, slack_channel_id: slackChannelId, slack_channel_name: slackChannelName || null }) });
+export const removeOrganizationBoardSlackChannel = (id: string, boardId: string, slackTeamId: string, slackChannelId: string) => apiRequest<void>(`/api/organizations/${id}/boards/${boardId}/slack-channels/${encodeURIComponent(slackTeamId)}/${encodeURIComponent(slackChannelId)}`, { method: 'DELETE' });
 export const listOrganizationInvites = (id: string) => apiRequest<OrganizationInvite[]>(`/api/organizations/${id}/invites`);
 export const createOrganizationInvite = (id: string, intendedEmail: string, defaultRole: AssignableRole) => apiRequest<CreatedOrganizationInvite>(`/api/organizations/${id}/invites`, { method: 'POST', body: JSON.stringify({ intended_email: intendedEmail, default_role: defaultRole, expires_in_hours: 72 }) });
 export const revokeOrganizationInvite = (id: string, inviteId: string) => apiRequest<void>(`/api/organizations/${id}/invites/${inviteId}`, { method: 'DELETE' });

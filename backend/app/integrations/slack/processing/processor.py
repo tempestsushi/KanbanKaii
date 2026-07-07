@@ -136,6 +136,14 @@ class SlackEventProcessor:
                         organization_context is not None
                         and organization_context.assigner_role in {"OWNER", "TEAM_LEAD"}
                     )
+                    board_binding = None
+                    if is_formal_organization_assignment and organization_context is not None:
+                        board_binding = await run_in_threadpool(
+                            self.slack_repository.find_board_channel_binding,
+                            organization_context.organization_id,
+                            team_id,
+                            event.channel,
+                        )
 
                     for extracted in batch.tasks:
                         analysis = AIAnalysisResult(
@@ -156,6 +164,9 @@ class SlackEventProcessor:
                             organization_id=organization_context.organization_id
                             if is_formal_organization_assignment
                             else None,
+                            board_id=board_binding.board_id
+                            if board_binding is not None
+                            else None,
                             created_by=sender.owner_id if sender else target.owner_id,
                             assigned_by_user_id=sender.owner_id
                             if is_formal_organization_assignment and sender
@@ -173,10 +184,11 @@ class SlackEventProcessor:
                         ticket_ids.append(str(ticket.id))
                         created_count += 1
                         logger.info(
-                            "Slack ticket created event_id=%s ticket_id=%s owner_id=%s; Supabase Realtime broadcast is now eligible",
+                            "Slack ticket created event_id=%s ticket_id=%s owner_id=%s board_id=%s; Supabase Realtime broadcast is now eligible",
                             event_id,
                             ticket.id,
                             target.owner_id,
+                            board_binding.board_id if board_binding else None,
                         )
                     results.append(
                         {
@@ -187,6 +199,9 @@ class SlackEventProcessor:
                             else "PRIVATE",
                             "organization_id": str(organization_context.organization_id)
                             if is_formal_organization_assignment
+                            else None,
+                            "board_id": str(board_binding.board_id)
+                            if board_binding is not None
                             else None,
                             "assigned_by_user_id": str(sender.owner_id)
                             if is_formal_organization_assignment and sender
