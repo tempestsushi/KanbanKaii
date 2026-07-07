@@ -268,7 +268,7 @@ export function KanbanBoard({
     if (!over) return;
     const nextStatus = statusFromDropTarget(String(over.id));
     const current = tickets.find((ticket) => ticket.id === active.id);
-    if (!current || !nextStatus || current.status === nextStatus || !canMoveTicket(current)) return;
+    if (!current || !nextStatus || current.status === nextStatus || !canMoveTicket()) return;
 
     setTickets((items) =>
       items.map((ticket) => ticket.id === active.id ? { ...ticket, status: nextStatus } : ticket),
