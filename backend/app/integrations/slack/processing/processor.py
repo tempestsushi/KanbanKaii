@@ -3,7 +3,11 @@ from starlette.concurrency import run_in_threadpool
 from app.core.logging import get_application_logger
 from app.database.ticket_repository import TicketRepository
 from app.integrations.slack.processing.message import prepare_slack_message
-from app.integrations.slack.data.repository import SlackMentionTarget, SlackRepository
+from app.integrations.slack.data.repository import (
+    SlackConnectedUser,
+    SlackMentionTarget,
+    SlackRepository,
+)
 from app.integrations.slack.schemas import SlackEvent
 from app.integrations.slack.services.users import SlackUserService
 from app.schemas.triage import AIAnalysisResult, IncomingMessage
@@ -12,6 +16,14 @@ from app.services.ticket_factory import create_ticket_from_analysis
 
 
 logger = get_application_logger("slack.processor")
+
+
+DIRECT_MESSAGE_CHANNEL_TYPES = {"im", "mpim"}
+
+
+def is_direct_message_channel(channel_type: str | None) -> bool:
+    """Slack DMs should create personal tasks even when a lead sends them."""
+    return channel_type in DIRECT_MESSAGE_CHANNEL_TYPES
 
 
 class SlackEventProcessor:
@@ -32,6 +44,7 @@ class SlackEventProcessor:
     async def process(
         self,
         event_id: str,
+        team_id: str,
         event: SlackEvent,
         targets: list[SlackMentionTarget],
     ) -> None:
@@ -60,6 +73,13 @@ class SlackEventProcessor:
                 return
 
             sender_name = event.user or "Slack user"
+            sender: SlackConnectedUser | None = None
+            if event.user:
+                sender = await run_in_threadpool(
+                    self.slack_repository.find_connected_user,
+                    team_id,
+                    event.user,
+                )
             if event.user and self.slack_user_service is not None:
                 sender_name = await self.slack_user_service.display_name(
                     targets[0].owner_id,
@@ -93,6 +113,30 @@ class SlackEventProcessor:
             else:
                 for target in targets:
                     ticket_ids: list[str] = []
+                    assignee_name = target.slack_user_id
+                    if self.slack_user_service is not None:
+                        assignee_name = await self.slack_user_service.display_name(
+                            target.owner_id,
+                            target.slack_user_id,
+                        )
+
+                    organization_context = None
+                    if sender is not None and sender.owner_id != target.owner_id:
+                        organization_context = await run_in_threadpool(
+                            self.slack_repository.find_organization_assignment_context,
+                            team_id,
+                            sender.owner_id,
+                            target.owner_id,
+                        )
+
+                    force_private_scope = is_direct_message_channel(event.channel_type)
+                    is_formal_organization_assignment = (
+                        not force_private_scope
+                        and
+                        organization_context is not None
+                        and organization_context.assigner_role in {"OWNER", "TEAM_LEAD"}
+                    )
+
                     for extracted in batch.tasks:
                         analysis = AIAnalysisResult(
                             isActionableTask=True,
@@ -105,7 +149,22 @@ class SlackEventProcessor:
                             message=message,
                             analysis=analysis,
                             source="SLACK",
-                            assignee=sender_name,
+                            assignee=assignee_name,
+                            scope="ORGANIZATION"
+                            if is_formal_organization_assignment
+                            else "PRIVATE",
+                            organization_id=organization_context.organization_id
+                            if is_formal_organization_assignment
+                            else None,
+                            created_by=sender.owner_id if sender else target.owner_id,
+                            assigned_by_user_id=sender.owner_id
+                            if is_formal_organization_assignment and sender
+                            else None,
+                            assignee_user_id=target.owner_id,
+                            requested_by_name=sender_name,
+                            source_team_id=team_id,
+                            source_channel_id=event.channel,
+                            source_message_ts=event.ts,
                         )
                         ticket = await run_in_threadpool(
                             self.ticket_repository.create,
@@ -123,6 +182,15 @@ class SlackEventProcessor:
                         {
                             "slack_user_id": target.slack_user_id,
                             "outcome": "TICKET_CREATED",
+                            "scope": "ORGANIZATION"
+                            if is_formal_organization_assignment
+                            else "PRIVATE",
+                            "organization_id": str(organization_context.organization_id)
+                            if is_formal_organization_assignment
+                            else None,
+                            "assigned_by_user_id": str(sender.owner_id)
+                            if is_formal_organization_assignment and sender
+                            else None,
                             "ticket_ids": ticket_ids,
                             "analysis": batch.model_dump(mode="json"),
                         }

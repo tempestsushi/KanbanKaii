@@ -44,6 +44,7 @@ class TicketCreate(BaseModel):
     owner_id: UUID
     scope: TicketScope = "PRIVATE"
     organization_id: UUID | None = None
+    board_id: UUID | None = None
     created_by: UUID | None = None
     assigned_by_user_id: UUID | None = None
     assignee_user_id: UUID | None = None
@@ -65,6 +66,8 @@ class TicketCreate(BaseModel):
         if self.scope == "PRIVATE":
             if self.organization_id is not None:
                 raise ValueError("Private tickets cannot belong to an organization")
+            if self.board_id is not None:
+                raise ValueError("Private tickets cannot belong to a board")
             if self.created_by is None:
                 self.created_by = self.owner_id
             if self.assignee_user_id is None:

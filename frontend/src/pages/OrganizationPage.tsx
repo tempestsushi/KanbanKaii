@@ -3,19 +3,29 @@ import { toast } from 'sonner';
 import {
   changeOrganizationMemberRole,
   acceptMyOrganizationInvitation,
+  addOrganizationBoardMember,
+  changeOrganizationBoardMemberRole,
   createOrganization,
+  createOrganizationBoard,
   createOrganizationInvite,
+  deleteOrganizationBoard,
   deleteOrganization,
   declineMyOrganizationInvitation,
+  listOrganizationBoardMembers,
+  listOrganizationBoards,
   listOrganizationInvites,
   listOrganizationMembers,
   listOrganizations,
   listMyOrganizationInvitations,
   leaveOrganization,
+  removeOrganizationBoardMember,
   removeOrganizationMember,
   revokeOrganizationInvite,
   type AssignableRole,
   type Organization,
+  type OrganizationBoard,
+  type OrganizationBoardMember,
+  type OrganizationBoardRole,
   type OrganizationInvite,
   type OrganizationMember,
   type MyOrganizationInvitation,
@@ -42,6 +52,7 @@ import {
 } from '@/integrations/slack/api';
 
 const roles: AssignableRole[] = ['TEAM_LEAD', 'MEMBER', 'VIEWER'];
+const boardRoles: OrganizationBoardRole[] = ['MANAGER', 'MEMBER', 'VIEWER'];
 const roleLabel = (role: string) => role.replace('_', ' ').toLowerCase().replace(/^./, (letter) => letter.toUpperCase());
 const slugify = (value: string) => value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 63);
 
@@ -49,6 +60,9 @@ export function OrganizationPage() {
   const { user } = useAuth();
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [members, setMembers] = useState<OrganizationMember[]>([]);
+  const [boards, setBoards] = useState<OrganizationBoard[]>([]);
+  const [selectedBoardId, setSelectedBoardId] = useState<string | null>(null);
+  const [boardMembers, setBoardMembers] = useState<OrganizationBoardMember[]>([]);
   const [invites, setInvites] = useState<OrganizationInvite[]>([]);
   const [myInvitations, setMyInvitations] = useState<MyOrganizationInvitation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -57,10 +71,17 @@ export function OrganizationPage() {
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [slugEdited, setSlugEdited] = useState(false);
+  const [boardName, setBoardName] = useState('');
+  const [boardSlug, setBoardSlug] = useState('');
+  const [boardSlugEdited, setBoardSlugEdited] = useState(false);
+  const [boardMemberUserId, setBoardMemberUserId] = useState('');
+  const [boardMemberRole, setBoardMemberRole] = useState<OrganizationBoardRole>('MEMBER');
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<AssignableRole>('MEMBER');
   const [respondingInviteId, setRespondingInviteId] = useState<string | null>(null);
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
+  const [confirmBoardDelete, setConfirmBoardDelete] = useState<string | null>(null);
+  const [confirmBoardMemberRemove, setConfirmBoardMemberRemove] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [isDeletingOrganization, setIsDeletingOrganization] = useState(false);
@@ -80,6 +101,18 @@ export function OrganizationPage() {
   );
   const canLead = currentMembership?.role === 'OWNER' || currentMembership?.role === 'TEAM_LEAD';
   const isOwner = currentMembership?.role === 'OWNER';
+  const selectedBoard = useMemo(
+    () => boards.find((board) => board.id === selectedBoardId) ?? null,
+    [boards, selectedBoardId],
+  );
+  const boardMemberIds = useMemo(
+    () => new Set(boardMembers.map((member) => member.user_id)),
+    [boardMembers],
+  );
+  const availableBoardMembers = useMemo(
+    () => members.filter((member) => !boardMemberIds.has(member.user_id)),
+    [boardMemberIds, members],
+  );
 
   const loadOrganization = useCallback(async () => {
     setIsLoading(true);
@@ -94,12 +127,22 @@ export function OrganizationPage() {
       setOrganization(active);
       if (!active) {
         setMembers([]);
+        setBoards([]);
+        setSelectedBoardId(null);
+        setBoardMembers([]);
         setInvites([]);
         setSlackBinding({ connected: false, workspace_name: null, slack_team_id: null, verified_at: null });
         return;
       }
-      const loadedMembers = await listOrganizationMembers(active.id);
+      const [loadedMembers, loadedBoards] = await Promise.all([
+        listOrganizationMembers(active.id),
+        listOrganizationBoards(active.id),
+      ]);
       setMembers(loadedMembers);
+      setBoards(loadedBoards);
+      const nextBoardId = loadedBoards[0]?.id ?? null;
+      setSelectedBoardId(nextBoardId);
+      setBoardMembers(nextBoardId ? await listOrganizationBoardMembers(active.id, nextBoardId) : []);
       const role = loadedMembers.find((member) => member.user_id === user?.id)?.role;
       setInvites(role === 'OWNER' || role === 'TEAM_LEAD' ? await listOrganizationInvites(active.id) : []);
       setSlackBinding(await getOrganizationSlackStatus(active.id));
@@ -154,6 +197,109 @@ export function OrganizationPage() {
       toast.error(inviteError instanceof Error ? inviteError.message : 'Could not create invitation');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const selectBoard = async (boardId: string) => {
+    if (!organization) return;
+    setSelectedBoardId(boardId);
+    setConfirmBoardDelete(null);
+    setConfirmBoardMemberRemove(null);
+    try {
+      setBoardMembers(await listOrganizationBoardMembers(organization.id, boardId));
+    } catch (boardError) {
+      toast.error(boardError instanceof Error ? boardError.message : 'Could not load board members');
+    }
+  };
+
+  const createBoard = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!organization || !canLead) return;
+    setIsSaving(true);
+    try {
+      const board = await createOrganizationBoard(
+        organization.id,
+        boardName.trim(),
+        boardSlug.trim(),
+      );
+      setBoardName('');
+      setBoardSlug('');
+      setBoardSlugEdited(false);
+      const loadedBoards = await listOrganizationBoards(organization.id);
+      setBoards(loadedBoards);
+      setSelectedBoardId(board.id);
+      setBoardMembers(await listOrganizationBoardMembers(organization.id, board.id));
+      toast.success('Project board created');
+    } catch (boardError) {
+      toast.error(boardError instanceof Error ? boardError.message : 'Could not create board');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const addBoardMember = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!organization || !selectedBoard || !boardMemberUserId) return;
+    setIsSaving(true);
+    try {
+      await addOrganizationBoardMember(
+        organization.id,
+        selectedBoard.id,
+        boardMemberUserId,
+        boardMemberRole,
+      );
+      setBoardMemberUserId('');
+      setBoardMemberRole('MEMBER');
+      setBoardMembers(await listOrganizationBoardMembers(organization.id, selectedBoard.id));
+      toast.success('Board member added');
+    } catch (boardError) {
+      toast.error(boardError instanceof Error ? boardError.message : 'Could not add board member');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const changeBoardRole = async (member: OrganizationBoardMember, role: OrganizationBoardRole) => {
+    if (!organization || !selectedBoard) return;
+    try {
+      const updated = await changeOrganizationBoardMemberRole(
+        organization.id,
+        selectedBoard.id,
+        member.user_id,
+        role,
+      );
+      setBoardMembers((items) => items.map((item) => item.user_id === updated.user_id ? updated : item));
+      toast.success('Board role updated');
+    } catch (boardError) {
+      toast.error(boardError instanceof Error ? boardError.message : 'Could not update board role');
+    }
+  };
+
+  const removeBoardMember = async (userId: string) => {
+    if (!organization || !selectedBoard) return;
+    try {
+      await removeOrganizationBoardMember(organization.id, selectedBoard.id, userId);
+      setBoardMembers((items) => items.filter((item) => item.user_id !== userId));
+      setConfirmBoardMemberRemove(null);
+      toast.success('Board member removed');
+    } catch (boardError) {
+      toast.error(boardError instanceof Error ? boardError.message : 'Could not remove board member');
+    }
+  };
+
+  const removeBoard = async (boardId: string) => {
+    if (!organization) return;
+    try {
+      await deleteOrganizationBoard(organization.id, boardId);
+      const loadedBoards = await listOrganizationBoards(organization.id);
+      const nextBoardId = loadedBoards[0]?.id ?? null;
+      setBoards(loadedBoards);
+      setSelectedBoardId(nextBoardId);
+      setBoardMembers(nextBoardId ? await listOrganizationBoardMembers(organization.id, nextBoardId) : []);
+      setConfirmBoardDelete(null);
+      toast.success('Project board deleted');
+    } catch (boardError) {
+      toast.error(boardError instanceof Error ? boardError.message : 'Could not delete board');
     }
   };
 
@@ -298,6 +444,169 @@ export function OrganizationPage() {
               {!isOwner && !slackBinding.connected && <p className="mt-1 text-[11px] text-slate-400">Only the organization owner can establish this connection.</p>}
             </div>
             {isOwner && <Button type="button" variant="outline" disabled={isConnectingSlack} onClick={() => void connectOrganizationSlack()}>{isConnectingSlack ? 'Opening Slack…' : slackBinding.connected ? 'Reverify workspace' : 'Connect workspace'}</Button>}
+          </div>
+        </section>
+
+        <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <h2 className="text-sm font-semibold text-slate-800">Project boards</h2>
+              <p className="mt-1 max-w-2xl text-xs leading-5 text-slate-500">
+                Split organization work into focused boards. A manager can keep a leadership board private to only the team leads who belong to it.
+              </p>
+            </div>
+            {canLead && (
+              <form onSubmit={createBoard} className="grid gap-2 sm:min-w-[420px] sm:grid-cols-[1fr_1fr_auto]">
+                <Input
+                  value={boardName}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setBoardName(value);
+                    if (!boardSlugEdited) setBoardSlug(slugify(value));
+                  }}
+                  placeholder="Frontend Revamp"
+                  required
+                />
+                <Input
+                  value={boardSlug}
+                  onChange={(event) => {
+                    setBoardSlugEdited(true);
+                    setBoardSlug(slugify(event.target.value));
+                  }}
+                  placeholder="frontend-revamp"
+                  required
+                  minLength={2}
+                />
+                <Button disabled={isSaving || boardName.trim().length < 2 || boardSlug.length < 2}>
+                  {isSaving ? 'Saving…' : 'Create board'}
+                </Button>
+              </form>
+            )}
+          </div>
+
+          <div className="mt-5 grid gap-5 lg:grid-cols-[260px_1fr]">
+            <div className="rounded-lg border border-slate-100 bg-slate-50/80 p-2">
+              {boards.length === 0 ? (
+                <p className="p-3 text-xs leading-5 text-slate-500">
+                  No project boards yet. Create one for a project, leadership channel, or client workstream.
+                </p>
+              ) : (
+                <div className="space-y-1">
+                  {boards.map((board) => (
+                    <button
+                      key={board.id}
+                      type="button"
+                      onClick={() => void selectBoard(board.id)}
+                      className={`block w-full rounded-md px-3 py-2 text-left text-xs transition ${selectedBoardId === board.id ? 'bg-white font-semibold text-violet-700 shadow-sm' : 'text-slate-600 hover:bg-white/80'}`}
+                    >
+                      <span className="block truncate">{board.name}</span>
+                      <span className="mt-0.5 block truncate text-[10px] font-normal text-slate-400">{board.slug}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-lg border border-slate-100 p-4">
+              {!selectedBoard ? (
+                <div className="py-8 text-center">
+                  <p className="text-sm font-medium text-slate-700">Select or create a board</p>
+                  <p className="mt-1 text-xs text-slate-500">Board members will control who can see board-scoped tickets.</p>
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-800">{selectedBoard.name}</h3>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {boardMembers.length} board member{boardMembers.length === 1 ? '' : 's'} · Created {new Date(selectedBoard.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    {canLead && (
+                      confirmBoardDelete === selectedBoard.id ? (
+                        <div className="flex items-center gap-2">
+                          <button className="text-xs font-semibold text-red-600" onClick={() => void removeBoard(selectedBoard.id)}>Confirm delete</button>
+                          <button className="text-xs text-slate-500" onClick={() => setConfirmBoardDelete(null)}>Cancel</button>
+                        </div>
+                      ) : (
+                        <button className="text-xs font-semibold text-slate-400 hover:text-red-600" onClick={() => setConfirmBoardDelete(selectedBoard.id)}>Delete board</button>
+                      )
+                    )}
+                  </div>
+
+                  {canLead && (
+                    <form onSubmit={addBoardMember} className="grid gap-2 sm:grid-cols-[1fr_150px_auto]">
+                      <select
+                        value={boardMemberUserId}
+                        onChange={(event) => setBoardMemberUserId(event.target.value)}
+                        className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600"
+                        required
+                      >
+                        <option value="">Add organization member</option>
+                        {availableBoardMembers.map((member) => (
+                          <option key={member.user_id} value={member.user_id}>{member.display_name} · {roleLabel(member.role)}</option>
+                        ))}
+                      </select>
+                      <select
+                        value={boardMemberRole}
+                        onChange={(event) => setBoardMemberRole(event.target.value as OrganizationBoardRole)}
+                        className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600"
+                      >
+                        {boardRoles.map((role) => <option key={role} value={role}>{roleLabel(role)}</option>)}
+                      </select>
+                      <Button disabled={isSaving || !boardMemberUserId}>Add member</Button>
+                    </form>
+                  )}
+
+                  <div className="divide-y divide-slate-100">
+                    {boardMembers.map((member) => {
+                      const canManageBoardMember = canLead && member.user_id !== user?.id;
+                      return (
+                        <div key={member.user_id} className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex items-center gap-3">
+                            {member.avatar_url ? (
+                              <img src={member.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" referrerPolicy="no-referrer" />
+                            ) : (
+                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-100 text-xs font-semibold text-violet-700">
+                                {member.display_name.trim().slice(0, 1).toUpperCase()}
+                              </div>
+                            )}
+                            <div>
+                              <p className="text-sm font-medium text-slate-700">{member.display_name}{member.user_id === user?.id ? ' (You)' : ''}</p>
+                              <p className="mt-1 text-xs text-slate-400">{member.job_title ?? 'Board member'}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {canManageBoardMember ? (
+                              <select
+                                value={member.role}
+                                onChange={(event) => void changeBoardRole(member, event.target.value as OrganizationBoardRole)}
+                                className="rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-600"
+                              >
+                                {boardRoles.map((role) => <option key={role} value={role}>{roleLabel(role)}</option>)}
+                              </select>
+                            ) : (
+                              <span className="rounded-full bg-violet-50 px-2.5 py-1 text-[10px] font-semibold text-violet-700">{roleLabel(member.role)}</span>
+                            )}
+                            {canManageBoardMember && (
+                              confirmBoardMemberRemove === member.user_id ? (
+                                <>
+                                  <button className="text-xs font-semibold text-red-600" onClick={() => void removeBoardMember(member.user_id)}>Confirm</button>
+                                  <button className="text-xs text-slate-500" onClick={() => setConfirmBoardMemberRemove(null)}>Cancel</button>
+                                </>
+                              ) : (
+                                <button className="text-xs font-semibold text-slate-400 hover:text-red-600" onClick={() => setConfirmBoardMemberRemove(member.user_id)}>Remove</button>
+                              )
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {boardMembers.length === 0 && <p className="py-6 text-center text-xs text-slate-500">No board members yet.</p>}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </section>
 

@@ -55,8 +55,8 @@ class FakeProcessor:
     def __init__(self) -> None:
         self.processed = None
 
-    async def process(self, event_id, event, targets):
-        self.processed = (event_id, event, targets)
+    async def process(self, event_id, team_id, event, targets):
+        self.processed = (event_id, team_id, event, targets)
 
 
 class SlackQueueTests(TestCase):
@@ -81,7 +81,8 @@ class SlackQueueTests(TestCase):
 
         self.assertEqual(repository.loaded_event_id, "Ev123")
         self.assertEqual(processor.processed[0], "Ev123")
-        self.assertEqual(processor.processed[1].user, "U-SENDER")
+        self.assertEqual(processor.processed[1], "T123")
+        self.assertEqual(processor.processed[2].user, "U-SENDER")
 
     def test_worker_skips_completed_delivery(self) -> None:
         repository = FakeRepository(delivery_status="COMPLETED")

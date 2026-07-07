@@ -45,7 +45,7 @@ export function TicketCard({ ticket, onEdit, overlay = false, draggable = true }
 
   const SourceIcon = ticket.source === 'GitHub' ? Github : MessageSquare;
   const isAssignedTicket = ticket.scope !== 'PRIVATE';
-  const assignedBy = ticket.requestedByName ?? 'Organization lead';
+  const requesterName = ticket.requestedByName;
 
   return (
     <div
@@ -98,10 +98,10 @@ export function TicketCard({ ticket, onEdit, overlay = false, draggable = true }
           <span className="shrink-0">{isAssignedTicket ? 'Assigned to' : 'Assignee'}</span>
           <span className="truncate font-medium text-slate-500">{ticket.assignee}</span>
         </div>
-        {isAssignedTicket && (
+        {requesterName && (
           <div className="flex items-center gap-1.5 pl-5">
-            <span className="shrink-0">Assigned by</span>
-            <span className="truncate font-medium text-slate-500">{assignedBy}</span>
+            <span className="shrink-0">{isAssignedTicket ? 'Assigned by' : 'Requested by'}</span>
+            <span className="truncate font-medium text-slate-500">{requesterName}</span>
           </div>
         )}
       </div>

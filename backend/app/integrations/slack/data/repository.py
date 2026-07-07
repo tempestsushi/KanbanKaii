@@ -21,6 +21,19 @@ class SlackMentionTarget:
     slack_user_id: str
 
 
+@dataclass(frozen=True)
+class SlackConnectedUser:
+    owner_id: UUID
+    slack_user_id: str
+
+
+@dataclass(frozen=True)
+class SlackOrganizationAssignmentContext:
+    organization_id: UUID
+    assigner_role: str
+    assignee_role: str
+
+
 class SlackRepository:
     def __init__(self, client: Client) -> None:
         self.client = client
@@ -381,6 +394,119 @@ class SlackRepository:
                     "Supabase returned an invalid Slack mention owner"
                 ) from exc
         return targets
+
+    def find_connected_user(
+        self,
+        team_id: str,
+        slack_user_id: str,
+    ) -> SlackConnectedUser | None:
+        """Return the Kanban user connected to this Slack identity, if any."""
+        try:
+            result = (
+                self.client.table("integrations")
+                .select("owner_id,metadata")
+                .eq("provider", "SLACK")
+                .eq("external_account_id", team_id)
+                .execute()
+            )
+        except Exception as exc:
+            raise SlackRepositoryError(
+                "Supabase could not resolve the Slack sender"
+            ) from exc
+
+        rows: Any = result.data
+        if not isinstance(rows, list):
+            raise SlackRepositoryError("Supabase returned invalid Slack integrations")
+
+        for row in rows:
+            metadata = row.get("metadata")
+            connected_slack_user_id = (
+                metadata.get("slack_user_id") if isinstance(metadata, dict) else None
+            )
+            if connected_slack_user_id != slack_user_id:
+                continue
+            try:
+                return SlackConnectedUser(
+                    owner_id=UUID(str(row["owner_id"])),
+                    slack_user_id=connected_slack_user_id,
+                )
+            except (KeyError, TypeError, ValueError) as exc:
+                raise SlackRepositoryError(
+                    "Supabase returned an invalid Slack connected user"
+                ) from exc
+        return None
+
+    def find_organization_assignment_context(
+        self,
+        team_id: str,
+        assigner_user_id: UUID,
+        assignee_user_id: UUID,
+    ) -> SlackOrganizationAssignmentContext | None:
+        """Return shared org membership for a Slack assignment in this workspace."""
+        try:
+            binding_result = (
+                self.client.table("organization_slack_workspaces")
+                .select("organization_id")
+                .eq("slack_team_id", team_id)
+                .limit(1)
+                .execute()
+            )
+        except Exception as exc:
+            raise SlackRepositoryError(
+                "Supabase could not resolve the Slack organization binding"
+            ) from exc
+
+        bindings: Any = binding_result.data
+        if not isinstance(bindings, list):
+            raise SlackRepositoryError(
+                "Supabase returned an invalid Slack organization binding"
+            )
+        if not bindings:
+            return None
+
+        try:
+            organization_id = UUID(str(bindings[0]["organization_id"]))
+        except (KeyError, TypeError, ValueError) as exc:
+            raise SlackRepositoryError(
+                "Supabase returned an invalid Slack organization binding"
+            ) from exc
+
+        try:
+            members_result = (
+                self.client.table("organization_members")
+                .select("user_id,role")
+                .eq("organization_id", str(organization_id))
+                .execute()
+            )
+        except Exception as exc:
+            raise SlackRepositoryError(
+                "Supabase could not resolve organization Slack members"
+            ) from exc
+
+        members: Any = members_result.data
+        if not isinstance(members, list):
+            raise SlackRepositoryError(
+                "Supabase returned invalid organization Slack members"
+            )
+
+        roles: dict[UUID, str] = {}
+        for member in members:
+            try:
+                roles[UUID(str(member["user_id"]))] = str(member["role"])
+            except (KeyError, TypeError, ValueError) as exc:
+                raise SlackRepositoryError(
+                    "Supabase returned an invalid organization member"
+                ) from exc
+
+        assigner_role = roles.get(assigner_user_id)
+        assignee_role = roles.get(assignee_user_id)
+        if assigner_role is None or assignee_role is None:
+            return None
+        return SlackOrganizationAssignmentContext(
+            organization_id=organization_id,
+            assigner_role=assigner_role,
+            assignee_role=assignee_role,
+        )
 
     def update_webhook_delivery(
         self,

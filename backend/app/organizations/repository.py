@@ -11,7 +11,10 @@ from supabase import Client
 
 from app.organizations.schemas import (
     AssignableRole,
+    AssignableBoardRole,
     MyOrganizationInvitation,
+    OrganizationBoardMemberResponse,
+    OrganizationBoardResponse,
     OrganizationInviteResponse,
     OrganizationMemberResponse,
     OrganizationResponse,
@@ -123,6 +126,125 @@ class OrganizationRepository:
             ]
         except (APIError, ValidationError, TypeError) as error:
             raise OrganizationRepositoryError("Supabase could not load organization members") from error
+
+    def create_board(
+        self,
+        organization_id: UUID,
+        name: str,
+        slug: str,
+    ) -> OrganizationBoardResponse:
+        try:
+            result = self.client.rpc(
+                "create_organization_board",
+                {
+                    "p_organization_id": str(organization_id),
+                    "p_name": name,
+                    "p_slug": slug,
+                },
+            ).execute()
+        except APIError as error:
+            _raise_database_error(error, "Supabase could not create the board")
+        board_id = _uuid_result(result.data)
+        boards = [board for board in self.list_boards(organization_id) if board.id == board_id]
+        if len(boards) != 1:
+            raise OrganizationRepositoryError("Supabase did not return the board")
+        return boards[0]
+
+    def list_boards(self, organization_id: UUID) -> list[OrganizationBoardResponse]:
+        try:
+            result = (
+                self.client.table("organization_boards")
+                .select("*")
+                .eq("organization_id", str(organization_id))
+                .order("created_at", desc=True)
+                .execute()
+            )
+            return [
+                OrganizationBoardResponse.model_validate_json(json.dumps(row))
+                for row in result.data
+            ]
+        except (APIError, ValidationError, TypeError) as error:
+            raise OrganizationRepositoryError("Supabase could not load boards") from error
+
+    def delete_board(self, organization_id: UUID, board_id: UUID) -> None:
+        try:
+            self.client.rpc(
+                "delete_organization_board",
+                {
+                    "p_organization_id": str(organization_id),
+                    "p_board_id": str(board_id),
+                },
+            ).execute()
+        except APIError as error:
+            _raise_database_error(error, "Supabase could not delete the board")
+
+    def list_board_members(
+        self,
+        organization_id: UUID,
+        board_id: UUID,
+    ) -> list[OrganizationBoardMemberResponse]:
+        try:
+            result = self.client.rpc(
+                "list_organization_board_members_with_profiles",
+                {
+                    "p_organization_id": str(organization_id),
+                    "p_board_id": str(board_id),
+                },
+            ).execute()
+            return [
+                OrganizationBoardMemberResponse.model_validate_json(json.dumps(row))
+                for row in result.data
+            ]
+        except (APIError, ValidationError, TypeError) as error:
+            if isinstance(error, APIError):
+                _raise_database_error(error, "Supabase could not load board members")
+            raise OrganizationRepositoryError("Supabase could not load board members") from error
+
+    def add_board_member(
+        self,
+        organization_id: UUID,
+        board_id: UUID,
+        user_id: UUID,
+        role: AssignableBoardRole,
+    ) -> OrganizationBoardMemberResponse:
+        try:
+            self.client.rpc(
+                "upsert_organization_board_member",
+                {
+                    "p_organization_id": str(organization_id),
+                    "p_board_id": str(board_id),
+                    "p_user_id": str(user_id),
+                    "p_role": role,
+                },
+            ).execute()
+        except APIError as error:
+            _raise_database_error(error, "Supabase could not save the board member")
+        members = [
+            member
+            for member in self.list_board_members(organization_id, board_id)
+            if member.user_id == user_id
+        ]
+        if len(members) != 1:
+            raise OrganizationRepositoryError("Supabase did not return the board member")
+        return members[0]
+
+    def remove_board_member(
+        self,
+        organization_id: UUID,
+        board_id: UUID,
+        user_id: UUID,
+    ) -> None:
+        try:
+            self.client.rpc(
+                "remove_organization_board_member",
+                {
+                    "p_organization_id": str(organization_id),
+                    "p_board_id": str(board_id),
+                    "p_user_id": str(user_id),
+                },
+            ).execute()
+        except APIError as error:
+            _raise_database_error(error, "Supabase could not remove the board member")
 
     def change_role(self, organization_id: UUID, user_id: UUID, role: AssignableRole) -> OrganizationMemberResponse:
         try:

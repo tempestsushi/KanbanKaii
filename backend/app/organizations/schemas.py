@@ -7,6 +7,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 OrganizationRole = Literal["OWNER", "TEAM_LEAD", "MEMBER", "VIEWER"]
 AssignableRole = Literal["TEAM_LEAD", "MEMBER", "VIEWER"]
+OrganizationBoardRole = Literal["MANAGER", "MEMBER", "VIEWER"]
+AssignableBoardRole = Literal["MANAGER", "MEMBER", "VIEWER"]
 
 
 class OrganizationCreate(BaseModel):
@@ -50,6 +52,52 @@ class OrganizationMemberRoleUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
     role: AssignableRole
+
+
+class OrganizationBoardCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, str_strip_whitespace=True)
+
+    name: str = Field(min_length=2, max_length=100)
+    slug: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$", min_length=2, max_length=63)
+
+
+class OrganizationBoardResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    id: UUID
+    organization_id: UUID
+    name: str
+    slug: str
+    created_by: UUID
+    created_at: datetime
+    updated_at: datetime
+
+
+class OrganizationBoardMemberCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    user_id: UUID
+    role: AssignableBoardRole = "MEMBER"
+
+
+class OrganizationBoardMemberRoleUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    role: AssignableBoardRole
+
+
+class OrganizationBoardMemberResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    board_id: UUID
+    organization_id: UUID
+    user_id: UUID
+    role: OrganizationBoardRole
+    added_by: UUID | None = None
+    joined_at: datetime
+    display_name: str = Field(min_length=1, max_length=100)
+    job_title: str | None = Field(default=None, min_length=1, max_length=100)
+    avatar_url: str | None = Field(default=None, max_length=2048)
 
 
 class OrganizationInviteCreate(BaseModel):

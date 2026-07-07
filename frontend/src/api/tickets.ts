@@ -15,6 +15,7 @@ export interface ApiTicket {
   owner_id: string;
   scope: 'PRIVATE' | 'PERSONAL_ASSIGNMENT' | 'ORGANIZATION';
   organization_id: string | null;
+  board_id: string | null;
   created_by: string | null;
   assigned_by_user_id: string | null;
   assignee_user_id: string | null;
@@ -73,6 +74,7 @@ export function mapApiTicket(ticket: ApiTicket): Ticket {
     ownerId: ticket.owner_id,
     scope: ticket.scope,
     organizationId: ticket.organization_id ?? undefined,
+    boardId: ticket.board_id ?? undefined,
     createdBy: ticket.created_by ?? undefined,
     assignedByUserId: ticket.assigned_by_user_id ?? undefined,
     assigneeUserId: ticket.assignee_user_id ?? undefined,

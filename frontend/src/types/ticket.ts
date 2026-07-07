@@ -19,6 +19,7 @@ export interface Ticket {
   ownerId: string;
   scope: TicketScope;
   organizationId?: string;
+  boardId?: string;
   createdBy?: string;
   assignedByUserId?: string;
   assigneeUserId?: string;

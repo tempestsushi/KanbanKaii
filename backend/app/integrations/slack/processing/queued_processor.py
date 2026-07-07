@@ -55,4 +55,4 @@ class SlackQueuedEventHandler:
                 [{"outcome": "CONNECTED_USER_NO_LONGER_AVAILABLE"}],
             )
             return
-        await self.processor.process(event_id, envelope.event, targets)
+        await self.processor.process(event_id, envelope.team_id, envelope.event, targets)

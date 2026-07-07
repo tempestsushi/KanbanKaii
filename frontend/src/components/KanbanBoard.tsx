@@ -69,11 +69,12 @@ const priorityOrder: Record<TicketPriority, number> = {
 
 interface KanbanBoardProps {
   organizationId?: string;
+  organizationBoardId?: string;
   organizationRole?: OrganizationRole;
   organizationMembers?: Array<{ user_id: string; display_name: string }>;
 }
 
-export function KanbanBoard({ organizationId, organizationRole, organizationMembers = [] }: KanbanBoardProps) {
+export function KanbanBoard({ organizationId, organizationBoardId, organizationRole, organizationMembers = [] }: KanbanBoardProps) {
   const { user } = useAuth();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -109,6 +110,7 @@ export function KanbanBoard({ organizationId, organizationRole, organizationMemb
     const matches = tickets.filter((ticket) => {
       const searchable = `${ticket.title} ${ticket.description} ${ticket.assignee} ${ticket.source} ${ticket.priority}`.toLowerCase();
       return (
+        (!organizationBoardId || ticket.boardId === organizationBoardId) &&
         (!normalizedQuery || searchable.includes(normalizedQuery)) &&
         (priorityFilter === 'ALL' || ticket.priority === priorityFilter) &&
         (sourceFilter === 'ALL' || ticket.source === sourceFilter)
@@ -125,7 +127,7 @@ export function KanbanBoard({ organizationId, organizationRole, organizationMemb
       const rightTime = right.createdAt ? new Date(right.createdAt).getTime() : 0;
       return sortMode === 'OLDEST' ? leftTime - rightTime : rightTime - leftTime;
     });
-  }, [priorityFilter, query, sortMode, sourceFilter, tickets]);
+  }, [organizationBoardId, priorityFilter, query, sortMode, sourceFilter, tickets]);
 
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
