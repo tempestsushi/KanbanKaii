@@ -105,8 +105,10 @@ export function KanbanBoard({
   const canManageOrganization = organizationRole === 'OWNER' || organizationRole === 'TEAM_LEAD';
   const canCreate = !isOrganizationBoard || canManageOrganization;
   const assigneeOptions = useMemo(
-    () => organizationMembers.map((member) => ({ value: member.user_id, label: member.display_name })),
-    [organizationMembers],
+    () => organizationMembers
+      .filter((member) => member.user_id !== user?.id)
+      .map((member) => ({ value: member.user_id, label: member.display_name })),
+    [organizationMembers, user?.id],
   );
   const canMoveTicket = useCallback(
     (ticket: Ticket) => !isOrganizationBoard || canManageOrganization || ticket.assigneeUserId === user?.id,
@@ -319,7 +321,7 @@ export function KanbanBoard({
 
     try {
       const createdTicket = organizationId
-        ? await createOrganizationTicket(organizationId, values)
+        ? await createOrganizationTicket(organizationId, values, organizationBoardId)
         : await createTicket(values);
       setTickets((items) => mergeTicket(items, createdTicket));
       setModalOpen(false);

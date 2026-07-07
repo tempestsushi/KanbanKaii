@@ -142,6 +142,7 @@ class TicketRepository:
                 "create_organization_ticket",
                 {
                     "p_organization_id": str(organization_id),
+                    "p_board_id": str(ticket.board_id) if ticket.board_id else None,
                     "p_assignee_user_id": str(ticket.assignee_user_id),
                     "p_title": ticket.title,
                     "p_description": ticket.description,

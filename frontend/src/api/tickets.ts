@@ -254,6 +254,7 @@ export async function createTicket(values: TicketFormValues): Promise<Ticket> {
 export async function createOrganizationTicket(
   organizationId: string,
   values: TicketFormValues,
+  boardId?: string,
 ): Promise<Ticket> {
   if (!values.assigneeUserId) throw new Error('Select an organization member');
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
@@ -264,6 +265,7 @@ export async function createOrganizationTicket(
       method: 'POST',
       headers: await authenticatedHeaders(true),
       body: JSON.stringify({
+        board_id: boardId ?? null,
         title: values.title,
         description: values.description,
         priority: apiPriorityMap[values.priority],

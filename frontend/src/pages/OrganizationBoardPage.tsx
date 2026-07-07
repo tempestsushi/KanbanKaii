@@ -13,6 +13,9 @@ import { KanbanBoard } from '@/components/KanbanBoard';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 
+const selectedViewStorageKey = (organizationId: string, userId: string | undefined) =>
+  `kanbankaii:organization-board-view:${organizationId}:${userId ?? 'anonymous'}`;
+
 export function OrganizationBoardPage() {
   const { user } = useAuth();
   const [organization, setOrganization] = useState<Organization | null>(null);
@@ -46,11 +49,13 @@ export function OrganizationBoardPage() {
       const loadedRole = loadedMembers.find((member) => member.user_id === user?.id)?.role;
       setRole(loadedRole);
       setSelectedViewId((current) => {
+        const stored = window.localStorage.getItem(selectedViewStorageKey(active.id, user?.id));
         const validIds = new Set([
           ...(loadedRole === 'OWNER' ? ['OVERVIEW'] : []),
           ...(loadedRole === 'TEAM_LEAD' ? ['ORG_WIDE'] : []),
           ...loadedBoards.map((board) => board.id),
         ]);
+        if (stored && validIds.has(stored)) return stored;
         if (validIds.has(current)) return current;
         if (loadedRole === 'OWNER') return 'OVERVIEW';
         if (loadedRole === 'TEAM_LEAD') return 'ORG_WIDE';
@@ -85,6 +90,13 @@ export function OrganizationBoardPage() {
   const selectedView = viewOptions.find((option) => option.id === selectedViewId);
   const selectedBoardId = boards.some((board) => board.id === selectedViewId) ? selectedViewId : undefined;
   const ticketView = selectedViewId === 'ORG_WIDE' ? 'organization_wide' : 'overview';
+
+  const selectView = (viewId: string) => {
+    setSelectedViewId(viewId);
+    if (organization) {
+      window.localStorage.setItem(selectedViewStorageKey(organization.id, user?.id), viewId);
+    }
+  };
 
   if (isLoading) {
     return <AppLayout pageTitle="Organization board"><div className="p-8 text-sm text-slate-500">Loading organization board…</div></AppLayout>;
@@ -122,7 +134,7 @@ export function OrganizationBoardPage() {
             Board view
             <select
               value={selectedViewId}
-              onChange={(event) => setSelectedViewId(event.target.value)}
+              onChange={(event) => selectView(event.target.value)}
               className="rounded-md border border-violet-200 bg-white px-2 py-1 text-[11px] text-slate-700 shadow-sm outline-none focus:border-violet-400"
             >
               {viewOptions.map((option) => (

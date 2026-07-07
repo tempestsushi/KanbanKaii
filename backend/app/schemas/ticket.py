@@ -29,6 +29,7 @@ class OrganizationTicketCreate(BaseModel):
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
+    board_id: UUID | None = None
     title: str = Field(min_length=1, max_length=200)
     description: str = Field(min_length=1, max_length=5_000)
     priority: Priority

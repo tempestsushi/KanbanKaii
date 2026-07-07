@@ -86,6 +86,7 @@ export function OrganizationPage() {
   const [boardMemberRole, setBoardMemberRole] = useState<OrganizationBoardRole>('MEMBER');
   const [slackChannelId, setSlackChannelId] = useState('');
   const [slackChannelName, setSlackChannelName] = useState('');
+  const [showSlackChannelForm, setShowSlackChannelForm] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<AssignableRole>('MEMBER');
   const [respondingInviteId, setRespondingInviteId] = useState<string | null>(null);
@@ -231,6 +232,7 @@ export function OrganizationPage() {
     setConfirmBoardDelete(null);
     setConfirmBoardMemberRemove(null);
     setConfirmSlackChannelRemove(null);
+    setShowSlackChannelForm(false);
     try {
       const [loadedBoardMembers, loadedBoardSlackChannels] = await Promise.all([
         listOrganizationBoardMembers(organization.id, boardId),
@@ -333,6 +335,7 @@ export function OrganizationPage() {
       );
       setSlackChannelId('');
       setSlackChannelName('');
+      setShowSlackChannelForm(false);
       setBoardSlackChannels(await listOrganizationBoardSlackChannels(organization.id, selectedBoard.id));
       toast.success('Slack channel linked to project board');
     } catch (channelError) {
@@ -645,40 +648,61 @@ export function OrganizationPage() {
                   <div className="rounded-lg border border-slate-100 bg-slate-50/70 p-4">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div>
-                        <h4 className="text-xs font-semibold text-slate-700">Slack channel mapping</h4>
+                        <h4 className="text-xs font-semibold text-slate-700">Slack channels connected to this board</h4>
                         <p className="mt-1 text-[11px] leading-5 text-slate-500">
-                          Messages from a linked Slack channel will create organization tickets directly inside this project board.
+                          When a manager or board lead assigns work from a connected Slack channel, KanbanKaii saves the ticket inside this project board.
                         </p>
                       </div>
-                      {slackBinding.connected && (
-                        <span className="rounded-full bg-violet-50 px-2.5 py-1 text-[10px] font-semibold text-violet-700">
-                          {slackBinding.slack_team_id}
-                        </span>
+                      {canManageSelectedBoard && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={!slackBinding.connected || !slackBinding.slack_team_id}
+                          onClick={() => setShowSlackChannelForm((visible) => !visible)}
+                        >
+                          {showSlackChannelForm ? 'Cancel' : 'Connect Slack channel'}
+                        </Button>
                       )}
                     </div>
 
-                    {canManageSelectedBoard && slackBinding.connected && slackBinding.slack_team_id && (
-                      <form onSubmit={addSlackChannelMapping} className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
-                        <Input
-                          value={slackChannelId}
-                          onChange={(event) => setSlackChannelId(event.target.value)}
-                          placeholder="Slack channel ID, e.g. C0123ABC"
-                          required
-                        />
-                        <Input
-                          value={slackChannelName}
-                          onChange={(event) => setSlackChannelName(event.target.value)}
-                          placeholder="Optional channel name"
-                        />
-                        <Button disabled={isSaving || !slackChannelId.trim()}>
-                          Link channel
-                        </Button>
+                    {slackBinding.connected && (
+                      <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+                        <span className="rounded-full bg-violet-50 px-2.5 py-1 font-semibold text-violet-700">
+                          Workspace: {slackBinding.workspace_name ?? slackBinding.slack_team_id}
+                        </span>
+                        <span>Team ID: {slackBinding.slack_team_id}</span>
+                      </div>
+                    )}
+
+                    {showSlackChannelForm && canManageSelectedBoard && slackBinding.connected && slackBinding.slack_team_id && (
+                      <form onSubmit={addSlackChannelMapping} className="mt-4 rounded-lg border border-violet-100 bg-white p-3">
+                        <p className="mb-3 text-[11px] leading-5 text-slate-500">
+                          Paste the Slack channel ID for the public/private channel you want mapped to this board.
+                          In Slack, open the channel details and copy the channel ID, usually starting with <span className="font-semibold text-slate-700">C</span> or <span className="font-semibold text-slate-700">G</span>.
+                        </p>
+                        <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+                          <Input
+                            value={slackChannelId}
+                            onChange={(event) => setSlackChannelId(event.target.value)}
+                            placeholder="Channel ID, e.g. C0123ABC"
+                            required
+                          />
+                          <Input
+                            value={slackChannelName}
+                            onChange={(event) => setSlackChannelName(event.target.value)}
+                            placeholder="Optional display name"
+                          />
+                          <Button disabled={isSaving || !slackChannelId.trim()}>
+                            Save channel
+                          </Button>
+                        </div>
                       </form>
                     )}
 
                     {!slackBinding.connected && (
                       <p className="mt-3 rounded-md bg-white px-3 py-2 text-[11px] text-slate-500">
-                        Connect the organization Slack workspace before linking channels to project boards.
+                        Connect the organization Slack workspace above before linking channels to project boards.
                       </p>
                     )}
 

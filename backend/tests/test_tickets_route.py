@@ -80,7 +80,7 @@ class FakeTicketRepository:
         self.organization_create = (organization_id, ticket)
         return TicketResponse(
             id=uuid4(), owner_id=ticket.assignee_user_id, scope="ORGANIZATION",
-            organization_id=organization_id, created_by=uuid4(),
+            organization_id=organization_id, board_id=ticket.board_id, created_by=uuid4(),
             assigned_by_user_id=uuid4(), assignee_user_id=ticket.assignee_user_id,
             title=ticket.title, description=ticket.description,
             priority=ticket.priority, status=ticket.status,
@@ -241,6 +241,7 @@ class TicketsRouteTests(TestCase):
 
     def test_creates_organization_ticket_for_selected_member(self) -> None:
         organization_id = uuid4()
+        board_id = uuid4()
         assignee_id = uuid4()
         repository = FakeTicketRepository([])
         app.dependency_overrides[get_ticket_repository] = lambda: repository
@@ -252,14 +253,17 @@ class TicketsRouteTests(TestCase):
                 "description": "Document the upcoming release.",
                 "priority": "MEDIUM",
                 "status": "PENDING",
+                "board_id": str(board_id),
                 "assignee_user_id": str(assignee_id),
             },
         )
 
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.json()["scope"], "ORGANIZATION")
+        self.assertEqual(response.json()["board_id"], str(board_id))
         self.assertEqual(response.json()["assignee_user_id"], str(assignee_id))
         self.assertEqual(repository.organization_create[0], organization_id)
+        self.assertEqual(repository.organization_create[1].board_id, board_id)
         self.assertEqual(repository.organization_create[1].assignee_user_id, assignee_id)
 
     def test_updates_organization_ticket(self) -> None:
