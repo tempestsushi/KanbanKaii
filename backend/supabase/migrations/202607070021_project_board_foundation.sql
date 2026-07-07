@@ -131,8 +131,8 @@ begin
     end if;
 
     v_role := public.current_organization_role(p_organization_id);
-    if coalesce(v_role, '') not in ('OWNER', 'TEAM_LEAD') then
-        raise exception 'Only an organization owner or team lead can create boards'
+    if coalesce(v_role, '') <> 'OWNER' then
+        raise exception 'Only an organization manager can create boards'
             using errcode = '42501';
     end if;
 

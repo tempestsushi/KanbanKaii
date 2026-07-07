@@ -62,8 +62,14 @@ class FakeTicketRepository:
         ticket = self.tickets[0]
         return ticket.model_copy(update={"status": new_status})
 
-    def list_for_organization(self, organization_id, ticket_status=None):
-        self.organization_list = (organization_id, ticket_status)
+    def list_for_organization(
+        self,
+        organization_id,
+        ticket_status=None,
+        view="overview",
+        board_id=None,
+    ):
+        self.organization_list = (organization_id, ticket_status, view, board_id)
         return self.tickets
 
     def create_for_organization(
@@ -217,7 +223,21 @@ class TicketsRouteTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()[0]["scope"], "ORGANIZATION")
-        self.assertEqual(repository.organization_list, (organization_id, "PENDING"))
+        self.assertEqual(repository.organization_list, (organization_id, "PENDING", "overview", None))
+
+    def test_lists_organization_tickets_with_board_filter(self) -> None:
+        organization_id = uuid4()
+        board_id = uuid4()
+        repository = FakeTicketRepository([])
+        app.dependency_overrides[get_ticket_repository] = lambda: repository
+
+        response = client.get(
+            f"/api/tickets/organizations/{organization_id}",
+            params={"board_id": str(board_id)},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(repository.organization_list, (organization_id, None, "overview", board_id))
 
     def test_creates_organization_ticket_for_selected_member(self) -> None:
         organization_id = uuid4()

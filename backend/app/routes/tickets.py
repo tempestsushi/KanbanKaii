@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
@@ -111,12 +111,22 @@ async def list_organization_tickets(
     _: Annotated[UUID, Depends(get_current_user_id)],
     ticket_repository: Annotated[TicketRepository, Depends(get_ticket_repository)],
     ticket_status: Annotated[TicketStatus | None, Query(alias="status")] = None,
+    view: Annotated[
+        Literal["overview", "organization_wide"],
+        Query(description="overview returns visible board and org tickets; organization_wide returns unboarded org tickets"),
+    ] = "overview",
+    board_id: Annotated[
+        UUID | None,
+        Query(description="Optional project board filter"),
+    ] = None,
 ) -> list[TicketResponse]:
     try:
         return await run_in_threadpool(
             ticket_repository.list_for_organization,
             organization_id,
             ticket_status,
+            view,
+            board_id,
         )
     except TicketPermissionError as error:
         raise HTTPException(status_code=403, detail=str(error)) from error

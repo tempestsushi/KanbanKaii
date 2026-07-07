@@ -74,7 +74,7 @@ class OrganizationBoardResponse(BaseModel):
 
 
 class OrganizationBoardMemberCreate(BaseModel):
-    model_config = ConfigDict(extra="forbid", strict=True)
+    model_config = ConfigDict(extra="forbid")
 
     user_id: UUID
     role: AssignableBoardRole = "MEMBER"

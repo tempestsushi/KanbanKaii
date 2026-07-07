@@ -36,3 +36,8 @@ class ProjectBoardFoundationMigrationTests(TestCase):
         self.assertIn("function public.upsert_organization_board_member", self.sql)
         self.assertIn("function public.delete_organization_board", self.sql)
         self.assertIn("Only an organization owner or board manager", self.sql)
+
+    def test_only_organization_manager_can_create_boards(self) -> None:
+        self.assertIn("coalesce(v_role, '') <> 'OWNER'", self.sql)
+        self.assertIn("Only an organization manager can create boards", self.sql)
+        self.assertNotIn("not in ('OWNER', 'TEAM_LEAD')", self.sql)

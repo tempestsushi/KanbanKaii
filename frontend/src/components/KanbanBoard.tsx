@@ -25,6 +25,7 @@ import {
   updateOrganizationTicket,
   updateTicketStatus,
   type ApiTicket,
+  type OrganizationTicketView,
 } from '@/api/tickets';
 import {
   TICKET_STATUSES,
@@ -70,11 +71,20 @@ const priorityOrder: Record<TicketPriority, number> = {
 interface KanbanBoardProps {
   organizationId?: string;
   organizationBoardId?: string;
+  organizationTicketView?: OrganizationTicketView;
+  organizationBoardNames?: Record<string, string>;
   organizationRole?: OrganizationRole;
   organizationMembers?: Array<{ user_id: string; display_name: string }>;
 }
 
-export function KanbanBoard({ organizationId, organizationBoardId, organizationRole, organizationMembers = [] }: KanbanBoardProps) {
+export function KanbanBoard({
+  organizationId,
+  organizationBoardId,
+  organizationTicketView = 'overview',
+  organizationBoardNames = {},
+  organizationRole,
+  organizationMembers = [],
+}: KanbanBoardProps) {
   const { user } = useAuth();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -111,6 +121,7 @@ export function KanbanBoard({ organizationId, organizationBoardId, organizationR
       const searchable = `${ticket.title} ${ticket.description} ${ticket.assignee} ${ticket.source} ${ticket.priority}`.toLowerCase();
       return (
         (!organizationBoardId || ticket.boardId === organizationBoardId) &&
+        (!isOrganizationBoard || organizationTicketView !== 'organization_wide' || !ticket.boardId) &&
         (!normalizedQuery || searchable.includes(normalizedQuery)) &&
         (priorityFilter === 'ALL' || ticket.priority === priorityFilter) &&
         (sourceFilter === 'ALL' || ticket.source === sourceFilter)
@@ -127,7 +138,7 @@ export function KanbanBoard({ organizationId, organizationBoardId, organizationR
       const rightTime = right.createdAt ? new Date(right.createdAt).getTime() : 0;
       return sortMode === 'OLDEST' ? leftTime - rightTime : rightTime - leftTime;
     });
-  }, [organizationBoardId, priorityFilter, query, sortMode, sourceFilter, tickets]);
+  }, [isOrganizationBoard, organizationBoardId, organizationTicketView, priorityFilter, query, sortMode, sourceFilter, tickets]);
 
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
@@ -150,7 +161,11 @@ export function KanbanBoard({ organizationId, organizationBoardId, organizationR
     try {
       setTickets(
         organizationId
-          ? await fetchOrganizationTickets(organizationId, { signal })
+          ? await fetchOrganizationTickets(organizationId, {
+              signal,
+              view: organizationTicketView,
+              boardId: organizationBoardId,
+            })
           : await fetchTickets({ signal }),
       );
     } catch (error) {
@@ -163,7 +178,7 @@ export function KanbanBoard({ organizationId, organizationBoardId, organizationR
     } finally {
       if (!signal?.aborted) setIsLoading(false);
     }
-  }, [organizationId]);
+  }, [organizationBoardId, organizationId, organizationTicketView]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -461,11 +476,20 @@ export function KanbanBoard({ organizationId, organizationBoardId, organizationR
               onAdd={openCreator}
               canAdd={canCreate}
               canDragTicket={canMoveTicket}
+              boardNames={organizationBoardNames}
             />
           ))}
         </div>
         <DragOverlay dropAnimation={{ duration: 180, easing: 'ease-out' }}>
-          {activeTicket ? <TicketCard ticket={activeTicket} onEdit={() => undefined} overlay draggable={false} /> : null}
+          {activeTicket ? (
+            <TicketCard
+              ticket={activeTicket}
+              onEdit={() => undefined}
+              boardName={activeTicket.boardId ? organizationBoardNames[activeTicket.boardId] : undefined}
+              overlay
+              draggable={false}
+            />
+          ) : null}
         </DragOverlay>
       </DndContext>
 

@@ -7,6 +7,7 @@ import { Github, GripVertical, MessageSquare, UserRound } from 'lucide-react';
 interface TicketCardProps {
   ticket: Ticket;
   onEdit: (ticket: Ticket) => void;
+  boardName?: string;
   overlay?: boolean;
   draggable?: boolean;
 }
@@ -26,7 +27,7 @@ const priorityConfig = {
   },
 };
 
-export function TicketCard({ ticket, onEdit, overlay = false, draggable = true }: TicketCardProps) {
+export function TicketCard({ ticket, onEdit, boardName, overlay = false, draggable = true }: TicketCardProps) {
   const {
     attributes,
     listeners,
@@ -91,6 +92,12 @@ export function TicketCard({ ticket, onEdit, overlay = false, draggable = true }
         <span className="inline-flex items-center gap-1 rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[9px] font-medium text-slate-500">
           <SourceIcon className="h-3 w-3" /> {ticket.source}
         </span>
+
+        {boardName && (
+          <span className="inline-flex items-center rounded-sm border border-violet-200 bg-violet-50 px-1.5 py-0.5 text-[9px] font-semibold text-violet-700">
+            {boardName}
+          </span>
+        )}
       </div>
       <div className="mt-3 space-y-1.5 border-t border-slate-100 pt-2.5 text-[10px] text-slate-400">
         <div className="flex items-center gap-1.5">

@@ -14,9 +14,10 @@ interface KanbanColumnProps {
   onAdd: (status: TicketStatus) => void;
   canAdd?: boolean;
   canDragTicket?: (ticket: Ticket) => boolean;
+  boardNames?: Record<string, string>;
 }
 
-export function KanbanColumn({ id, title, tickets, onEdit, onAdd, canAdd = true, canDragTicket = () => true }: KanbanColumnProps) {
+export function KanbanColumn({ id, title, tickets, onEdit, onAdd, canAdd = true, canDragTicket = () => true, boardNames = {} }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id });
   const [visibleCount, setVisibleCount] = useState(3);
   const visibleTickets = tickets.slice(0, visibleCount);
@@ -61,7 +62,13 @@ export function KanbanColumn({ id, title, tickets, onEdit, onAdd, canAdd = true,
       <div className="min-h-[240px] flex-1 space-y-2.5">
         <SortableContext items={visibleTickets.map((t) => t.id)} strategy={verticalListSortingStrategy}>
           {visibleTickets.map((ticket) => (
-            <TicketCard key={ticket.id} ticket={ticket} onEdit={onEdit} draggable={canDragTicket(ticket)} />
+            <TicketCard
+              key={ticket.id}
+              ticket={ticket}
+              onEdit={onEdit}
+              boardName={ticket.boardId ? boardNames[ticket.boardId] : undefined}
+              draggable={canDragTicket(ticket)}
+            />
           ))}
         </SortableContext>
         {hasMoreTickets && (

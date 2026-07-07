@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   listOrganizationBoards,
   listOrganizationMembers,
@@ -17,7 +17,7 @@ export function OrganizationBoardPage() {
   const { user } = useAuth();
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [boards, setBoards] = useState<OrganizationBoard[]>([]);
-  const [selectedBoardId, setSelectedBoardId] = useState('ALL');
+  const [selectedViewId, setSelectedViewId] = useState('OVERVIEW');
   const [role, setRole] = useState<OrganizationRole | undefined>();
   const [members, setMembers] = useState<OrganizationMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -34,7 +34,7 @@ export function OrganizationBoardPage() {
         setRole(undefined);
         setMembers([]);
         setBoards([]);
-        setSelectedBoardId('ALL');
+        setSelectedViewId('OVERVIEW');
         return;
       }
       const [loadedMembers, loadedBoards] = await Promise.all([
@@ -43,12 +43,19 @@ export function OrganizationBoardPage() {
       ]);
       setMembers(loadedMembers);
       setBoards(loadedBoards);
-      setSelectedBoardId((current) =>
-        current === 'ALL' || loadedBoards.some((board) => board.id === current)
-          ? current
-          : 'ALL',
-      );
-      setRole(loadedMembers.find((member) => member.user_id === user?.id)?.role);
+      const loadedRole = loadedMembers.find((member) => member.user_id === user?.id)?.role;
+      setRole(loadedRole);
+      setSelectedViewId((current) => {
+        const validIds = new Set([
+          ...(loadedRole === 'OWNER' ? ['OVERVIEW'] : []),
+          ...(loadedRole === 'TEAM_LEAD' ? ['ORG_WIDE'] : []),
+          ...loadedBoards.map((board) => board.id),
+        ]);
+        if (validIds.has(current)) return current;
+        if (loadedRole === 'OWNER') return 'OVERVIEW';
+        if (loadedRole === 'TEAM_LEAD') return 'ORG_WIDE';
+        return loadedBoards[0]?.id ?? 'NONE';
+      });
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Could not load organization');
     } finally {
@@ -57,6 +64,27 @@ export function OrganizationBoardPage() {
   }, [user?.id]);
 
   useEffect(() => { void loadOrganization(); }, [loadOrganization]);
+
+  const boardNames = useMemo(
+    () => Object.fromEntries(boards.map((board) => [board.id, board.name])),
+    [boards],
+  );
+  const viewOptions = useMemo(() => [
+    ...(role === 'OWNER'
+      ? [{ id: 'OVERVIEW', label: 'Organization-wide', helper: 'Manager overview across all project boards.' }]
+      : []),
+    ...(role === 'TEAM_LEAD'
+      ? [{ id: 'ORG_WIDE', label: 'Organization-wide', helper: 'Shared organization tasks outside project boards.' }]
+      : []),
+    ...boards.map((board) => ({
+      id: board.id,
+      label: board.name,
+      helper: 'Project board tasks visible to board members.',
+    })),
+  ], [boards, role]);
+  const selectedView = viewOptions.find((option) => option.id === selectedViewId);
+  const selectedBoardId = boards.some((board) => board.id === selectedViewId) ? selectedViewId : undefined;
+  const ticketView = selectedViewId === 'ORG_WIDE' ? 'organization_wide' : 'overview';
 
   if (isLoading) {
     return <AppLayout pageTitle="Organization board"><div className="p-8 text-sm text-slate-500">Loading organization board…</div></AppLayout>;
@@ -89,28 +117,43 @@ export function OrganizationBoardPage() {
               : 'You can view shared tickets and move only tasks assigned to you.'}
           </span>
         </div>
-        {boards.length > 0 && (
+        {viewOptions.length > 0 && (
           <label className="flex items-center gap-2 text-[11px] font-medium text-violet-700">
-            Project board
+            Board view
             <select
-              value={selectedBoardId}
-              onChange={(event) => setSelectedBoardId(event.target.value)}
+              value={selectedViewId}
+              onChange={(event) => setSelectedViewId(event.target.value)}
               className="rounded-md border border-violet-200 bg-white px-2 py-1 text-[11px] text-slate-700 shadow-sm outline-none focus:border-violet-400"
             >
-              <option value="ALL">All organization tasks</option>
-              {boards.map((board) => (
-                <option key={board.id} value={board.id}>{board.name}</option>
+              {viewOptions.map((option) => (
+                <option key={option.id} value={option.id}>{option.label}</option>
               ))}
             </select>
           </label>
         )}
       </div>
-      <KanbanBoard
-        organizationId={organization.id}
-        organizationBoardId={selectedBoardId === 'ALL' ? undefined : selectedBoardId}
-        organizationRole={role}
-        organizationMembers={members}
-      />
+      {viewOptions.length === 0 ? (
+        <div className="mx-auto max-w-xl p-8 text-center">
+          <h1 className="text-xl font-semibold text-slate-900">No project boards available</h1>
+          <p className="mt-2 text-sm text-slate-500">Ask your manager or team lead to add you to a project board before organization tasks appear here.</p>
+        </div>
+      ) : (
+        <>
+          {selectedView?.helper && (
+            <div className="border-b border-slate-200 bg-white px-4 py-2 text-[11px] text-slate-500 sm:px-6">
+              {selectedView.helper}
+            </div>
+          )}
+          <KanbanBoard
+            organizationId={organization.id}
+            organizationBoardId={selectedBoardId}
+            organizationTicketView={ticketView}
+            organizationBoardNames={boardNames}
+            organizationRole={role}
+            organizationMembers={members}
+          />
+        </>
+      )}
     </AppLayout>
   );
 }

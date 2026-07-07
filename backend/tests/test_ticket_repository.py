@@ -19,6 +19,7 @@ class FakeSupabaseQuery:
         self.inserted_payload = None
         self.selected_columns = None
         self.filters = []
+        self.null_filters = []
         self.ordering = None
         self.updated_payload = None
         self.delete_called = False
@@ -41,6 +42,10 @@ class FakeSupabaseQuery:
 
     def eq(self, column, value):
         self.filters.append((column, value))
+        return self
+
+    def is_(self, column, value):
+        self.null_filters.append((column, value))
         return self
 
     def order(self, column, desc=False):
@@ -182,6 +187,29 @@ class TicketRepositoryTests(TestCase):
                 ("status", "PENDING"),
             ],
         )
+
+    def test_filters_organization_tickets_by_board(self) -> None:
+        organization_id = uuid4()
+        board_id = uuid4()
+        query = FakeSupabaseQuery(data=[])
+
+        TicketRepository(
+            client=FakeSupabaseClient(query)
+        ).list_for_organization(organization_id, board_id=board_id)
+
+        self.assertIn(("organization_id", str(organization_id)), query.filters)
+        self.assertIn(("scope", "ORGANIZATION"), query.filters)
+        self.assertIn(("board_id", str(board_id)), query.filters)
+
+    def test_filters_organization_wide_tickets(self) -> None:
+        organization_id = uuid4()
+        query = FakeSupabaseQuery(data=[])
+
+        TicketRepository(
+            client=FakeSupabaseClient(query)
+        ).list_for_organization(organization_id, view="organization_wide")
+
+        self.assertEqual(query.null_filters, [("board_id", "null")])
 
     def test_updates_status_for_owner(self) -> None:
         ticket = make_ticket()

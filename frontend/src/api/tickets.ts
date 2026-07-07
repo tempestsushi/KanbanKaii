@@ -9,6 +9,7 @@ import { getSupabaseClient } from '@/lib/supabase';
 
 type ApiPriority = 'HIGH' | 'MEDIUM' | 'LOW';
 type ApiStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+export type OrganizationTicketView = 'overview' | 'organization_wide';
 
 export interface ApiTicket {
   id: string;
@@ -89,6 +90,8 @@ export function mapApiTicket(ticket: ApiTicket): Ticket {
 interface FetchTicketsOptions {
   status?: ApiStatus;
   signal?: AbortSignal;
+  view?: OrganizationTicketView;
+  boardId?: string;
 }
 
 async function authenticatedHeaders(
@@ -139,6 +142,8 @@ export async function fetchOrganizationTickets(
 
   const url = new URL(`/api/tickets/organizations/${organizationId}`, apiBaseUrl);
   if (options.status) url.searchParams.set('status', options.status);
+  if (options.view) url.searchParams.set('view', options.view);
+  if (options.boardId) url.searchParams.set('board_id', options.boardId);
   const response = await fetch(url, {
     signal: options.signal,
     headers: await authenticatedHeaders(),

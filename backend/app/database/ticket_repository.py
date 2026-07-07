@@ -15,6 +15,8 @@ from app.schemas.ticket import (
     TicketUpdate,
 )
 
+OrganizationTicketView = str
+
 
 class TicketRepositoryError(RuntimeError):
     """Raised when a ticket cannot be stored or read back safely."""
@@ -88,6 +90,8 @@ class TicketRepository:
         self,
         organization_id: UUID,
         ticket_status: TicketStatus | None = None,
+        view: OrganizationTicketView = "overview",
+        board_id: UUID | None = None,
     ) -> list[TicketResponse]:
         """Return organization-scoped tickets visible through the user's RLS policy."""
         try:
@@ -99,6 +103,10 @@ class TicketRepository:
             )
             if ticket_status is not None:
                 query = query.eq("status", ticket_status)
+            if board_id is not None:
+                query = query.eq("board_id", str(board_id))
+            elif view == "organization_wide":
+                query = query.is_("board_id", "null")
             result = query.order("created_at", desc=True).execute()
         except APIError as exc:
             if exc.code == "42501":

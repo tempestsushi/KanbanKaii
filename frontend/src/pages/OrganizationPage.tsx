@@ -53,7 +53,10 @@ import {
 
 const roles: AssignableRole[] = ['TEAM_LEAD', 'MEMBER', 'VIEWER'];
 const boardRoles: OrganizationBoardRole[] = ['MANAGER', 'MEMBER', 'VIEWER'];
-const roleLabel = (role: string) => role.replace('_', ' ').toLowerCase().replace(/^./, (letter) => letter.toUpperCase());
+const roleLabel = (role: string) => {
+  if (role === 'OWNER') return 'Manager';
+  return role.replace('_', ' ').toLowerCase().replace(/^./, (letter) => letter.toUpperCase());
+};
 const slugify = (value: string) => value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 63);
 
 export function OrganizationPage() {
@@ -101,10 +104,16 @@ export function OrganizationPage() {
   );
   const canLead = currentMembership?.role === 'OWNER' || currentMembership?.role === 'TEAM_LEAD';
   const isOwner = currentMembership?.role === 'OWNER';
+  const canCreateBoards = isOwner;
   const selectedBoard = useMemo(
     () => boards.find((board) => board.id === selectedBoardId) ?? null,
     [boards, selectedBoardId],
   );
+  const selectedBoardMembership = useMemo(
+    () => boardMembers.find((member) => member.user_id === user?.id),
+    [boardMembers, user?.id],
+  );
+  const canManageSelectedBoard = isOwner || selectedBoardMembership?.role === 'MANAGER';
   const boardMemberIds = useMemo(
     () => new Set(boardMembers.map((member) => member.user_id)),
     [boardMembers],
@@ -214,7 +223,7 @@ export function OrganizationPage() {
 
   const createBoard = async (event: FormEvent) => {
     event.preventDefault();
-    if (!organization || !canLead) return;
+    if (!organization || !canCreateBoards) return;
     setIsSaving(true);
     try {
       const board = await createOrganizationBoard(
@@ -455,7 +464,7 @@ export function OrganizationPage() {
                 Split organization work into focused boards. A manager can keep a leadership board private to only the team leads who belong to it.
               </p>
             </div>
-            {canLead && (
+            {canCreateBoards && (
               <form onSubmit={createBoard} className="grid gap-2 sm:min-w-[420px] sm:grid-cols-[1fr_1fr_auto]">
                 <Input
                   value={boardName}
@@ -522,7 +531,7 @@ export function OrganizationPage() {
                         {boardMembers.length} board member{boardMembers.length === 1 ? '' : 's'} · Created {new Date(selectedBoard.created_at).toLocaleDateString()}
                       </p>
                     </div>
-                    {canLead && (
+                    {canManageSelectedBoard && (
                       confirmBoardDelete === selectedBoard.id ? (
                         <div className="flex items-center gap-2">
                           <button className="text-xs font-semibold text-red-600" onClick={() => void removeBoard(selectedBoard.id)}>Confirm delete</button>
@@ -534,7 +543,7 @@ export function OrganizationPage() {
                     )}
                   </div>
 
-                  {canLead && (
+                  {canManageSelectedBoard && (
                     <form onSubmit={addBoardMember} className="grid gap-2 sm:grid-cols-[1fr_150px_auto]">
                       <select
                         value={boardMemberUserId}
@@ -560,7 +569,7 @@ export function OrganizationPage() {
 
                   <div className="divide-y divide-slate-100">
                     {boardMembers.map((member) => {
-                      const canManageBoardMember = canLead && member.user_id !== user?.id;
+                      const canManageBoardMember = canManageSelectedBoard && member.user_id !== user?.id;
                       return (
                         <div key={member.user_id} className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
                           <div className="flex items-center gap-3">
