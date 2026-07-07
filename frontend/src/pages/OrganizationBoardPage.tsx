@@ -51,15 +51,12 @@ export function OrganizationBoardPage() {
       setSelectedViewId((current) => {
         const stored = window.localStorage.getItem(selectedViewStorageKey(active.id, user?.id));
         const validIds = new Set([
-          ...(loadedRole === 'OWNER' ? ['OVERVIEW'] : []),
-          ...(loadedRole === 'TEAM_LEAD' ? ['ORG_WIDE'] : []),
+          'ORG_WIDE',
           ...loadedBoards.map((board) => board.id),
         ]);
         if (stored && validIds.has(stored)) return stored;
         if (validIds.has(current)) return current;
-        if (loadedRole === 'OWNER') return 'OVERVIEW';
-        if (loadedRole === 'TEAM_LEAD') return 'ORG_WIDE';
-        return loadedBoards[0]?.id ?? 'NONE';
+        return 'ORG_WIDE';
       });
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Could not load organization');
@@ -75,21 +72,20 @@ export function OrganizationBoardPage() {
     [boards],
   );
   const viewOptions = useMemo(() => [
-    ...(role === 'OWNER'
-      ? [{ id: 'OVERVIEW', label: 'Organization-wide', helper: 'Manager overview across all project boards.' }]
-      : []),
-    ...(role === 'TEAM_LEAD'
-      ? [{ id: 'ORG_WIDE', label: 'Organization-wide', helper: 'Shared organization tasks outside project boards.' }]
-      : []),
+    {
+      id: 'ORG_WIDE',
+      label: 'Organization-wide',
+      helper: 'Read-only overview of the project-board tickets you are allowed to see.',
+    },
     ...boards.map((board) => ({
       id: board.id,
       label: board.name,
       helper: 'Project board tasks visible to board members.',
     })),
-  ], [boards, role]);
+  ], [boards]);
   const selectedView = viewOptions.find((option) => option.id === selectedViewId);
   const selectedBoardId = boards.some((board) => board.id === selectedViewId) ? selectedViewId : undefined;
-  const ticketView = selectedViewId === 'ORG_WIDE' ? 'organization_wide' : 'overview';
+  const ticketView = 'overview';
 
   const selectView = (viewId: string) => {
     setSelectedViewId(viewId);
@@ -124,9 +120,7 @@ export function OrganizationBoardPage() {
         <div>
           <span className="font-semibold">{organization.name}</span>
           <span className="ml-2 text-violet-500">
-            {role === 'OWNER' || role === 'TEAM_LEAD'
-              ? 'You can manage organization tickets.'
-              : 'You can view shared tickets and move only tasks assigned to you.'}
+            Shared boards are for visibility. Update your assigned task status from My Tasks.
           </span>
         </div>
         {viewOptions.length > 0 && (

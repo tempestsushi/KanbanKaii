@@ -201,7 +201,7 @@ class TicketRepositoryTests(TestCase):
         self.assertIn(("scope", "ORGANIZATION"), query.filters)
         self.assertIn(("board_id", str(board_id)), query.filters)
 
-    def test_filters_organization_wide_tickets(self) -> None:
+    def test_organization_wide_view_includes_visible_board_tickets(self) -> None:
         organization_id = uuid4()
         query = FakeSupabaseQuery(data=[])
 
@@ -209,7 +209,9 @@ class TicketRepositoryTests(TestCase):
             client=FakeSupabaseClient(query)
         ).list_for_organization(organization_id, view="organization_wide")
 
-        self.assertEqual(query.null_filters, [("board_id", "null")])
+        self.assertIn(("organization_id", str(organization_id)), query.filters)
+        self.assertIn(("scope", "ORGANIZATION"), query.filters)
+        self.assertEqual(query.null_filters, [])
 
     def test_updates_status_for_owner(self) -> None:
         ticket = make_ticket()

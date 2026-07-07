@@ -111,8 +111,8 @@ export function KanbanBoard({
     [organizationMembers, user?.id],
   );
   const canMoveTicket = useCallback(
-    (ticket: Ticket) => !isOrganizationBoard || canManageOrganization || ticket.assigneeUserId === user?.id,
-    [canManageOrganization, isOrganizationBoard, user?.id],
+    () => !isOrganizationBoard,
+    [isOrganizationBoard],
   );
 
   const activeFilterCount = Number(priorityFilter !== 'ALL') + Number(sourceFilter !== 'ALL');
@@ -123,7 +123,6 @@ export function KanbanBoard({
       const searchable = `${ticket.title} ${ticket.description} ${ticket.assignee} ${ticket.source} ${ticket.priority}`.toLowerCase();
       return (
         (!organizationBoardId || ticket.boardId === organizationBoardId) &&
-        (!isOrganizationBoard || organizationTicketView !== 'organization_wide' || !ticket.boardId) &&
         (!normalizedQuery || searchable.includes(normalizedQuery)) &&
         (priorityFilter === 'ALL' || ticket.priority === priorityFilter) &&
         (sourceFilter === 'ALL' || ticket.source === sourceFilter)
@@ -140,7 +139,7 @@ export function KanbanBoard({
       const rightTime = right.createdAt ? new Date(right.createdAt).getTime() : 0;
       return sortMode === 'OLDEST' ? leftTime - rightTime : rightTime - leftTime;
     });
-  }, [isOrganizationBoard, organizationBoardId, organizationTicketView, priorityFilter, query, sortMode, sourceFilter, tickets]);
+  }, [organizationBoardId, priorityFilter, query, sortMode, sourceFilter, tickets]);
 
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {

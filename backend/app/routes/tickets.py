@@ -113,7 +113,7 @@ async def list_organization_tickets(
     ticket_status: Annotated[TicketStatus | None, Query(alias="status")] = None,
     view: Annotated[
         Literal["overview", "organization_wide"],
-        Query(description="overview returns visible board and org tickets; organization_wide returns unboarded org tickets"),
+        Query(description="Returns visible organization tickets. Use board_id to filter one project board."),
     ] = "overview",
     board_id: Annotated[
         UUID | None,

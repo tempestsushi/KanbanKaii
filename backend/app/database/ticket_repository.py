@@ -105,8 +105,6 @@ class TicketRepository:
                 query = query.eq("status", ticket_status)
             if board_id is not None:
                 query = query.eq("board_id", str(board_id))
-            elif view == "organization_wide":
-                query = query.is_("board_id", "null")
             result = query.order("created_at", desc=True).execute()
         except APIError as exc:
             if exc.code == "42501":
