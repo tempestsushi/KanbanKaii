@@ -32,11 +32,6 @@ export function CreateOrganizationPanel({
 }: CreateOrganizationPanelProps) {
   return (
     <div className="mx-auto max-w-xl space-y-6 p-5 sm:p-8">
-      <PendingInvitationsPanel
-        invitations={invitations}
-        respondingInviteId={respondingInviteId}
-        onRespond={onRespondToInvitation}
-      />
       <div>
         <h1 className="text-2xl font-semibold text-slate-900">Create your organization</h1>
         <p className="mt-2 text-sm leading-6 text-slate-500">
@@ -70,6 +65,11 @@ export function CreateOrganizationPanel({
           </Button>
         </form>
       </div>
+      <PendingInvitationsPanel
+        invitations={invitations}
+        respondingInviteId={respondingInviteId}
+        onRespond={onRespondToInvitation}
+      />
     </div>
   );
 }
