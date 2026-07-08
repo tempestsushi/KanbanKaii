@@ -1,9 +1,10 @@
-import { useState, type Dispatch, type FormEvent, type SetStateAction } from 'react';
+import { useCallback, useEffect, useRef, useState, type Dispatch, type FormEvent, type SetStateAction } from 'react';
 import { toast } from 'sonner';
 import {
   acceptMyOrganizationInvitation,
   createOrganizationInvite,
   declineMyOrganizationInvitation,
+  listMyOrganizationInvitations,
   listOrganizationInvites,
   revokeOrganizationInvite,
   type AssignableRole,
@@ -11,6 +12,8 @@ import {
   type Organization,
   type OrganizationInvite,
 } from '@/api/organizations';
+
+const INVITATION_REFRESH_INTERVAL_MS = 60_000;
 
 type OrganizationInvitationsOptions = {
   loadOrganization: () => Promise<void>;
@@ -30,6 +33,31 @@ export function useOrganizationInvitations({
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<AssignableRole>('MEMBER');
   const [respondingInviteId, setRespondingInviteId] = useState<string | null>(null);
+  const refreshInFlightRef = useRef(false);
+
+  const refreshInvitations = useCallback(async () => {
+    if (refreshInFlightRef.current) return;
+    refreshInFlightRef.current = true;
+    try {
+      const [myPendingInvitations, organizationInvites] = await Promise.all([
+        listMyOrganizationInvitations(),
+        organization ? listOrganizationInvites(organization.id) : Promise.resolve([]),
+      ]);
+      setMyInvitations(myPendingInvitations);
+      setInvites(organizationInvites);
+    } catch {
+      // Keep invitation auto-refresh quiet; manual actions still show toast errors.
+    } finally {
+      refreshInFlightRef.current = false;
+    }
+  }, [organization, setInvites, setMyInvitations]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      void refreshInvitations();
+    }, INVITATION_REFRESH_INTERVAL_MS);
+    return () => window.clearInterval(timer);
+  }, [refreshInvitations]);
 
   const createInvite = async (event: FormEvent) => {
     event.preventDefault();
@@ -63,6 +91,7 @@ export function useOrganizationInvitations({
     try {
       if (accept) {
         await acceptMyOrganizationInvitation(inviteId);
+        setMyInvitations((items) => items.filter((item) => item.id !== inviteId));
         toast.success('Organization joined');
         await loadOrganization();
       } else {

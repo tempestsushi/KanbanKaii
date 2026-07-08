@@ -1,5 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  listOrganizationBoardMembers,
+  listOrganizationMembers,
   type MyOrganizationInvitation,
   type Organization,
   type OrganizationBoard,
@@ -9,6 +11,7 @@ import {
   type OrganizationMember,
 } from '@/api/organizations';
 import { useAuth } from '@/auth/AuthContext';
+import { getSupabaseClient } from '@/lib/supabase';
 import { useOrganizationBoards } from './useOrganizationBoards';
 import { useOrganizationDangerActions } from './useOrganizationDangerActions';
 import { useOrganizationForm } from './useOrganizationForm';
@@ -35,6 +38,7 @@ export function useOrganizationPageController() {
   const [confirmBoardMemberRemove, setConfirmBoardMemberRemove] = useState<string | null>(null);
   const [confirmSlackChannelRemove, setConfirmSlackChannelRemove] = useState<string | null>(null);
   const [showSlackChannelForm, setShowSlackChannelForm] = useState(false);
+  const memberRefreshInFlightRef = useRef(false);
 
   const currentMembership = useMemo(
     () => members.find((member) => member.user_id === user?.id),
@@ -60,6 +64,66 @@ export function useOrganizationPageController() {
     () => members.filter((member) => !boardMemberIds.has(member.user_id)),
     [boardMemberIds, members],
   );
+
+  const refreshMembershipPanels = useCallback(async () => {
+    if (!organization || memberRefreshInFlightRef.current) return;
+    memberRefreshInFlightRef.current = true;
+    try {
+      const [loadedMembers, loadedBoardMembers] = await Promise.all([
+        listOrganizationMembers(organization.id),
+        selectedBoardId
+          ? listOrganizationBoardMembers(organization.id, selectedBoardId)
+          : Promise.resolve([]),
+      ]);
+      setMembers(loadedMembers);
+      setBoardMembers(loadedBoardMembers);
+    } catch (membershipError) {
+      setError(
+        membershipError instanceof Error
+          ? membershipError.message
+          : 'Could not refresh organization members',
+      );
+    } finally {
+      memberRefreshInFlightRef.current = false;
+    }
+  }, [organization, selectedBoardId]);
+
+  useEffect(() => {
+    if (!organization) return undefined;
+
+    const supabase = getSupabaseClient();
+    const channel = supabase
+      .channel(`organization-members:${organization.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'organization_members',
+          filter: `organization_id=eq.${organization.id}`,
+        },
+        () => {
+          void refreshMembershipPanels();
+        },
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'organization_board_members',
+          filter: `organization_id=eq.${organization.id}`,
+        },
+        () => {
+          void refreshMembershipPanels();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [organization, refreshMembershipPanels]);
 
   const slackConnection = useOrganizationSlackConnection({ isOwner, organization });
 

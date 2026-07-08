@@ -2,16 +2,22 @@ import Bell from 'lucide-react/dist/esm/icons/bell';
 import UserRound from 'lucide-react/dist/esm/icons/user-round';
 import { useEffect, useRef, useState, type MouseEvent, type SyntheticEvent } from 'react';
 import { useAuth } from '@/auth/AuthContext';
-import { fetchTickets } from '@/api/tickets';
+import { fetchTickets, mapApiTicket, type ApiTicket } from '@/api/tickets';
 import type { Ticket } from '@/types/ticket';
 import { BackendStatus } from './BackendStatus';
 import { navigateTo } from '@/lib/navigation';
+import { getSupabaseClient } from '@/lib/supabase';
 
 interface TopNavProps {
   pageTitle: string;
 }
 
 const notificationReadKey = (userId: string) => `kanbankaii:notifications-read:${userId}`;
+
+function mergeNotification(items: Ticket[], incoming: Ticket): Ticket[] {
+  const nextItems = items.filter((ticket) => ticket.id !== incoming.id);
+  return [incoming, ...nextItems].slice(0, 5);
+}
 
 export function TopNav({ pageTitle }: TopNavProps) {
   const { user, signOut } = useAuth();
@@ -35,11 +41,38 @@ export function TopNav({ pageTitle }: TopNavProps) {
   useEffect(() => {
     if (!user) {
       setNotificationsReadAt(0);
+      setNotifications([]);
       return;
     }
 
     const savedReadAt = Number(window.localStorage.getItem(notificationReadKey(user.id)) ?? 0);
     setNotificationsReadAt(Number.isFinite(savedReadAt) ? savedReadAt : 0);
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return undefined;
+
+    const supabase = getSupabaseClient();
+    const channel = supabase
+      .channel(`top-nav-ticket-notifications:${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'tickets',
+          filter: `owner_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const incoming = mapApiTicket(payload.new as ApiTicket);
+          setNotifications((items) => mergeNotification(items, incoming));
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
   }, [user]);
 
   const handleSignOut = async () => {
