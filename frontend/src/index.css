@@ -105,12 +105,13 @@
 
 .portfolio-mockup-grid {
   background:
-    radial-gradient(circle at 12% 18%, rgba(139, 92, 246, .22), transparent 28%),
-    radial-gradient(circle at 82% 24%, rgba(99, 102, 241, .2), transparent 26%),
-    linear-gradient(to right, rgba(109, 83, 170, .08) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(109, 83, 170, .08) 1px, transparent 1px);
-  background-size: auto, auto, 38px 38px, 38px 38px;
-  mask-image: linear-gradient(to bottom, black 70%, transparent);
+    radial-gradient(circle at 10% 18%, rgba(139, 92, 246, .42), transparent 30%),
+    radial-gradient(circle at 82% 20%, rgba(99, 102, 241, .34), transparent 30%),
+    radial-gradient(circle at 60% 78%, rgba(167, 139, 250, .26), transparent 34%),
+    linear-gradient(to right, rgba(109, 83, 170, .1) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(109, 83, 170, .1) 1px, transparent 1px);
+  background-size: auto, auto, auto, 38px 38px, 38px 38px;
+  mask-image: linear-gradient(to bottom, black 82%, transparent);
 }
 
 .landing-message { animation: landing-message-in 7s ease-out infinite; }

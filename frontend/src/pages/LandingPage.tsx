@@ -32,7 +32,9 @@ export function LandingPage() {
   const workspaceLabel = 'Start for free';
 
   return (
-    <main className="landing-scroll h-screen overflow-y-auto bg-[#f7f7fb] text-slate-950">
+    <main className="landing-scroll relative isolate h-screen overflow-y-auto overflow-x-hidden bg-[#f7f7fb] text-slate-950">
+      <LandingGradientPatches />
+
       <div className="relative overflow-hidden">
         <div className="landing-grid absolute inset-0 opacity-55" aria-hidden="true" />
         <div className="absolute -left-32 top-24 h-80 w-80 rounded-full bg-violet-300/30 blur-3xl" aria-hidden="true" />
@@ -97,7 +99,9 @@ export function LandingPage() {
         </section>
       </div>
 
-      <section id="how-it-works" className="bg-slate-950 px-5 py-24 text-white sm:px-8 lg:px-10">
+      <section id="how-it-works" className="relative z-10 overflow-hidden bg-slate-950 px-5 py-24 text-white sm:px-8 lg:px-10">
+        <div className="absolute -left-32 top-10 h-72 w-72 rounded-full bg-violet-500/20 blur-3xl" aria-hidden="true" />
+        <div className="absolute right-0 bottom-0 h-80 w-80 rounded-full bg-indigo-500/10 blur-3xl" aria-hidden="true" />
         <div className="mx-auto max-w-7xl">
           <div className="grid gap-10 lg:grid-cols-[0.7fr_1.3fr] lg:items-end">
             <div>
@@ -120,15 +124,20 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section id="features" className="px-5 py-24 sm:px-8 lg:px-10">
-        <div className="mx-auto grid max-w-7xl gap-14 rounded-[2rem] border border-violet-100 bg-white p-7 shadow-xl shadow-violet-100/40 sm:p-12 lg:grid-cols-2 lg:items-center">
+      <section id="features" className="relative z-10 overflow-hidden px-5 py-24 sm:px-8 lg:px-10">
+        <div className="landing-grid absolute inset-0 opacity-45" aria-hidden="true" />
+        <div className="absolute -left-28 top-12 h-80 w-80 rounded-full bg-violet-300/35 blur-3xl" aria-hidden="true" />
+        <div className="absolute right-[-8rem] bottom-0 h-96 w-96 rounded-full bg-indigo-300/35 blur-3xl" aria-hidden="true" />
+        <div className="absolute left-1/3 top-1/2 h-72 w-72 rounded-full bg-fuchsia-200/35 blur-3xl" aria-hidden="true" />
+
+        <div className="relative mx-auto grid max-w-7xl gap-14 rounded-[2rem] border border-violet-100 bg-white/68 p-7 shadow-xl shadow-violet-100/40 backdrop-blur-xl sm:p-12 lg:grid-cols-2 lg:items-center">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-violet-600">Built for focused work</p>
             <h2 className="mt-4 max-w-lg text-4xl font-black tracking-[-0.045em] sm:text-5xl">A quieter path from message to momentum.</h2>
           </div>
           <div className="space-y-4">
             {benefits.map((benefit) => (
-              <div key={benefit} className="flex items-center gap-4 rounded-xl bg-slate-50 px-4 py-4 text-sm font-semibold text-slate-700">
+              <div key={benefit} className="flex items-center gap-4 rounded-xl bg-white/70 px-4 py-4 text-sm font-semibold text-slate-700 shadow-sm shadow-violet-100/50 ring-1 ring-violet-50 backdrop-blur">
                 <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-violet-100 text-violet-700"><Check className="h-4 w-4" /></span>
                 {benefit}
               </div>
@@ -137,8 +146,14 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section className="px-5 pb-24 sm:px-8 lg:px-10">
-        <div className="mx-auto flex max-w-7xl flex-col items-center rounded-[2rem] bg-violet-600 px-6 py-16 text-center text-white sm:px-12">
+      <section className="relative z-10 overflow-hidden px-5 pb-24 sm:px-8 lg:px-10">
+        <div className="landing-grid absolute inset-0 opacity-35" aria-hidden="true" />
+        <div className="absolute left-[-6rem] top-[-3rem] h-80 w-80 rounded-full bg-violet-300/45 blur-3xl" aria-hidden="true" />
+        <div className="absolute right-[-5rem] bottom-[-5rem] h-96 w-96 rounded-full bg-indigo-300/45 blur-3xl" aria-hidden="true" />
+
+        <div className="relative mx-auto flex max-w-7xl flex-col items-center overflow-hidden rounded-[2rem] bg-gradient-to-br from-violet-600 via-violet-600 to-indigo-600 px-6 py-16 text-center text-white shadow-2xl shadow-violet-200/70 sm:px-12">
+          <div className="absolute -left-16 top-0 h-52 w-52 rounded-full bg-white/15 blur-3xl" aria-hidden="true" />
+          <div className="absolute right-0 bottom-0 h-64 w-64 rounded-full bg-indigo-300/25 blur-3xl" aria-hidden="true" />
           <h2 className="max-w-2xl text-4xl font-black tracking-[-0.045em] sm:text-5xl">Give every real request somewhere to go.</h2>
           <p className="mt-5 max-w-xl text-sm leading-7 text-violet-100">Connect Slack, keep your conversations natural, and let your private board collect the work worth doing.</p>
           <a className="mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-bold text-violet-700 shadow-xl transition hover:-translate-y-0.5" href={workspaceHref}>
@@ -148,7 +163,9 @@ export function LandingPage() {
         </div>
       </section>
 
-      <footer className="border-t border-slate-200 px-5 py-8 sm:px-8 lg:px-10">
+      <footer className="relative z-10 overflow-hidden border-t border-violet-100 bg-white/45 px-5 py-8 backdrop-blur-xl sm:px-8 lg:px-10">
+        <div className="landing-grid absolute inset-0 opacity-30" aria-hidden="true" />
+        <div className="absolute right-10 bottom-[-8rem] h-72 w-72 rounded-full bg-violet-300/40 blur-3xl" aria-hidden="true" />
         <div className="mx-auto flex max-w-7xl flex-col gap-3 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between">
           <span className="font-bold text-slate-700">KanbanKaii</span>
           <span>Private AI-assisted ticket management.</span>
@@ -158,63 +175,75 @@ export function LandingPage() {
   );
 }
 
+function LandingGradientPatches() {
+  return (
+    <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden="true">
+      <div className="absolute left-[-10rem] top-[8rem] h-[28rem] w-[28rem] rounded-full bg-violet-300/45 blur-[90px]" />
+      <div className="absolute right-[-12rem] top-[32rem] h-[26rem] w-[26rem] rounded-full bg-indigo-300/35 blur-[85px]" />
+      <div className="absolute left-[18%] bottom-[18%] h-[22rem] w-[22rem] rounded-full bg-fuchsia-200/35 blur-[90px]" />
+      <div className="absolute right-[-9rem] bottom-[-4rem] h-[28rem] w-[28rem] rounded-full bg-violet-300/38 blur-[100px]" />
+    </div>
+  );
+}
+
 function KanbanKaiiPortfolioMockup() {
   return (
-    <div className="relative mx-auto min-h-[520px] w-full max-w-2xl lg:mx-0">
-      <div className="absolute inset-4 rounded-[2.5rem] bg-violet-300/25 blur-3xl" aria-hidden="true" />
+    <div className="relative mx-auto w-full max-w-2xl overflow-hidden rounded-[2rem] bg-gradient-to-br from-violet-200/80 via-indigo-100/80 to-white px-3 pb-5 pt-8 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] lg:mx-0">
+      <div className="absolute -left-20 top-0 h-80 w-80 rounded-full bg-violet-500/25 blur-3xl" aria-hidden="true" />
+      <div className="absolute -right-20 top-16 h-96 w-96 rounded-full bg-indigo-400/25 blur-3xl" aria-hidden="true" />
+      <div className="absolute inset-4 rounded-[2.5rem] bg-violet-300/30 blur-3xl" aria-hidden="true" />
       <div className="portfolio-mockup-grid absolute inset-0 rounded-[2rem]" aria-hidden="true" />
 
-      <div className="portfolio-float-slow absolute left-0 top-8 z-20 w-[min(22rem,88vw)] rounded-[1.4rem] border border-white/70 bg-[#201d2b] p-4 text-white shadow-[0_30px_90px_-35px_rgba(31,24,62,0.75)]">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs font-bold text-violet-100">
-            <span className="grid h-7 w-7 place-items-center rounded-xl bg-violet-500/25">
-              <MessageSquare className="h-4 w-4 text-violet-200" />
-            </span>
-            Slack mention
-          </div>
-          <span className="rounded-full bg-emerald-400/15 px-2 py-1 text-[9px] font-black text-emerald-200">LIVE</span>
-        </div>
-        <div className="landing-message mt-5 rounded-2xl rounded-bl-md bg-white/10 p-4 ring-1 ring-white/10">
-          <div className="mb-3 flex items-center gap-2">
-            <span className="grid h-8 w-8 place-items-center rounded-xl bg-amber-300 text-[10px] font-black text-amber-950">AK</span>
-            <div>
-              <p className="text-xs font-black">Aisha</p>
-              <p className="text-[9px] text-slate-400">#product-team · now</p>
+      <div className="relative z-10 grid gap-4 md:grid-cols-[1.08fr_0.92fr] md:items-end">
+        <div className="portfolio-float-slow rounded-[1.4rem] border border-white/70 bg-[#201d2b] p-4 text-white shadow-[0_30px_90px_-35px_rgba(31,24,62,0.75)]">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs font-bold text-violet-100">
+              <span className="grid h-7 w-7 place-items-center rounded-xl bg-violet-500/25">
+                <MessageSquare className="h-4 w-4 text-violet-200" />
+              </span>
+              Slack mention
             </div>
+            <span className="rounded-full bg-emerald-400/15 px-2 py-1 text-[9px] font-black text-emerald-200">LIVE</span>
           </div>
-          <p className="text-sm leading-6 text-slate-100">
-            <span className="rounded bg-violet-500/30 px-1.5 py-0.5 text-violet-100">@Noah</span> can you fix the checkout validation before tomorrow?
-          </p>
+          <div className="landing-message mt-5 rounded-2xl rounded-bl-md bg-white/10 p-4 ring-1 ring-white/10">
+            <div className="mb-3 flex items-center gap-2">
+              <span className="grid h-8 w-8 place-items-center rounded-xl bg-amber-300 text-[10px] font-black text-amber-950">AK</span>
+              <div>
+                <p className="text-xs font-black">Aisha</p>
+                <p className="text-[9px] text-slate-400">#product-team · now</p>
+              </div>
+            </div>
+            <p className="text-sm leading-6 text-slate-100">
+              <span className="rounded bg-violet-500/30 px-1.5 py-0.5 text-violet-100">@Noah</span> can you fix the checkout validation before tomorrow?
+            </p>
+          </div>
+        </div>
+
+        <div className="portfolio-float-fast rounded-[1.35rem] border border-white/80 bg-white/75 p-4 shadow-[0_28px_70px_-35px_rgba(79,70,229,0.75)] backdrop-blur-xl">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-black text-slate-900">AI triage queue</p>
+            <span className="rounded-full bg-violet-50 px-2 py-1 text-[9px] font-black text-violet-700">Redis</span>
+          </div>
+          <div className="landing-thinking mt-4 space-y-3">
+            {[
+              ['Actionable task', 'true'],
+              ['Priority', 'High'],
+              ['Assignee', 'Noah'],
+            ].map(([label, value]) => (
+              <div key={label} className="flex items-center justify-between rounded-xl bg-white/65 px-3 py-2 ring-1 ring-white/60">
+                <span className="text-[10px] font-semibold text-slate-400">{label}</span>
+                <span className="text-[10px] font-black text-slate-800">{value}</span>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 flex items-center gap-2 rounded-xl bg-violet-600 px-3 py-2 text-[10px] font-bold text-white">
+            <span className="landing-pulse h-1.5 w-1.5 rounded-full bg-white" />
+            Structured JSON emitted
+          </div>
         </div>
       </div>
 
-      <div className="portfolio-flow-line portfolio-flow-line-one absolute left-[35%] top-[11rem] z-10 hidden h-24 w-44 rounded-full border-t-2 border-dashed border-violet-300/70 md:block" aria-hidden="true" />
-      <div className="portfolio-flow-line portfolio-flow-line-two absolute right-[18%] top-[17rem] z-10 hidden h-24 w-44 rounded-full border-t-2 border-dashed border-indigo-300/70 md:block" aria-hidden="true" />
-
-      <div className="portfolio-float-fast absolute right-2 top-48 z-30 w-[min(19rem,82vw)] rounded-[1.35rem] border border-violet-100 bg-white/95 p-4 shadow-[0_28px_70px_-35px_rgba(79,70,229,0.75)] backdrop-blur">
-        <div className="flex items-center justify-between">
-          <p className="text-xs font-black text-slate-900">AI triage queue</p>
-          <span className="rounded-full bg-violet-50 px-2 py-1 text-[9px] font-black text-violet-700">Redis</span>
-        </div>
-        <div className="landing-thinking mt-4 space-y-3">
-          {[
-            ['Actionable task', 'true'],
-            ['Priority', 'High'],
-            ['Assignee', 'Noah'],
-          ].map(([label, value]) => (
-            <div key={label} className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2">
-              <span className="text-[10px] font-semibold text-slate-400">{label}</span>
-              <span className="text-[10px] font-black text-slate-800">{value}</span>
-            </div>
-          ))}
-        </div>
-        <div className="mt-4 flex items-center gap-2 rounded-xl bg-violet-600 px-3 py-2 text-[10px] font-bold text-white">
-          <span className="landing-pulse h-1.5 w-1.5 rounded-full bg-white" />
-          Structured JSON emitted
-        </div>
-      </div>
-
-      <div className="absolute bottom-2 left-6 right-0 z-20 rounded-[1.7rem] border border-white/80 bg-white/90 p-4 shadow-[0_35px_110px_-48px_rgba(30,41,59,0.65)] backdrop-blur sm:left-16 sm:p-5">
+      <div className="relative z-10 mt-5 rounded-[1.7rem] border border-white/80 bg-white/70 p-4 shadow-[0_35px_110px_-48px_rgba(30,41,59,0.65)] backdrop-blur-xl sm:p-5">
         <div className="mb-4 flex items-center justify-between">
           <div>
             <p className="text-sm font-black text-slate-950">KanbanKaii board</p>
@@ -222,15 +251,15 @@ function KanbanKaiiPortfolioMockup() {
           </div>
           <span className="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black text-emerald-700">Online</span>
         </div>
-        <div className="grid h-56 grid-cols-3 gap-3">
+        <div className="grid min-h-56 grid-cols-1 gap-3 sm:grid-cols-3">
           {['Pending', 'In progress', 'Completed'].map((column, index) => (
-            <div key={column} className="rounded-2xl bg-slate-100/80 p-3">
+            <div key={column} className="rounded-2xl bg-white/35 p-3 ring-1 ring-white/60">
               <div className="mb-3 flex items-center justify-between">
                 <span className="text-[10px] font-black text-slate-600">{column}</span>
                 <span className="text-[10px] text-slate-400">{index === 0 ? '1' : '0'}</span>
               </div>
               {index === 0 ? (
-                <div className="landing-ticket rounded-2xl border border-violet-100 bg-white p-3 shadow-lg shadow-violet-100/60">
+                <div className="landing-ticket rounded-2xl border border-violet-100/80 bg-white/90 p-3 shadow-lg shadow-violet-100/60">
                   <span className="rounded-md bg-rose-50 px-2 py-1 text-[8px] font-black text-rose-600">HIGH</span>
                   <h3 className="mt-3 text-xs font-black leading-4 text-slate-900">Fix checkout validation</h3>
                   <p className="mt-2 line-clamp-2 text-[10px] leading-4 text-slate-400">Resolve the checkout validation bug before tomorrow.</p>
@@ -240,7 +269,7 @@ function KanbanKaiiPortfolioMockup() {
                   </div>
                 </div>
               ) : (
-                <div className="h-20 rounded-xl border border-dashed border-slate-200 bg-white/40" />
+                <div className="h-20 rounded-xl border border-dashed border-violet-200/70 bg-white/25" />
               )}
             </div>
           ))}
