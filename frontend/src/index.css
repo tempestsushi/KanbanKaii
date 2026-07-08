@@ -95,6 +95,36 @@
   100% { opacity: .25; transform: translateX(8px) rotate(8deg); }
 }
 
+@keyframes kanban-walkthrough-screen {
+  0% { opacity: 0; transform: translateY(18px) scale(.96); pointer-events: none; }
+  4%, 21% { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+  25%, 100% { opacity: 0; transform: translateY(-18px) scale(.97); pointer-events: none; }
+}
+
+@keyframes kanban-flow-step {
+  0% { border-color: rgba(255,255,255,.1); box-shadow: 0 20px 50px rgba(0,0,0,.2); transform: translateX(0) scale(1); }
+  4%, 21% { border-color: rgba(167,139,250,.65); box-shadow: 0 20px 60px rgba(124,58,237,.22); transform: translateX(8px) scale(1.018); }
+  25%, 100% { border-color: rgba(255,255,255,.1); box-shadow: 0 20px 50px rgba(0,0,0,.2); transform: translateX(0) scale(1); }
+}
+
+@keyframes kanban-click-bounce {
+  0%, 58%, 100% { transform: scale(1); }
+  64% { transform: scale(.96); }
+  72% { transform: scale(1.04); }
+  82% { transform: scale(1); }
+}
+
+@keyframes kanban-message-bounce {
+  0%, 18% { transform: translateY(10px) scale(.97); opacity: .65; }
+  32%, 100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+@keyframes kanban-ticket-bounce {
+  0%, 38% { opacity: 0; transform: translateY(24px) scale(.92); }
+  52% { opacity: 1; transform: translateY(-8px) scale(1.035); }
+  64%, 100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 .landing-grid {
   background-image:
     linear-gradient(to right, rgba(109, 83, 170, .07) 1px, transparent 1px),
@@ -122,6 +152,19 @@
 .portfolio-float-fast { animation: portfolio-float-fast 6s ease-in-out infinite; }
 .portfolio-flow-line { animation: portfolio-flow-dash 2.6s ease-in-out infinite; }
 .portfolio-flow-line-two { animation-delay: .55s; }
+.kanban-walkthrough-screen { animation: kanban-walkthrough-screen 12s cubic-bezier(.2, .9, .2, 1) infinite; opacity: 0; }
+.kanban-walkthrough-screen-1 { animation-delay: 0s; }
+.kanban-walkthrough-screen-2 { animation-delay: 3s; }
+.kanban-walkthrough-screen-3 { animation-delay: 6s; }
+.kanban-walkthrough-screen-4 { animation-delay: 9s; }
+.kanban-flow-step { animation: kanban-flow-step 12s cubic-bezier(.2, .9, .2, 1) infinite; }
+.kanban-flow-step-1 { animation-delay: 0s; }
+.kanban-flow-step-2 { animation-delay: 3s; }
+.kanban-flow-step-3 { animation-delay: 6s; }
+.kanban-flow-step-4 { animation-delay: 9s; }
+.kanban-click-bounce { animation: kanban-click-bounce 3s ease-in-out infinite; }
+.kanban-message-bounce { animation: kanban-message-bounce 3s cubic-bezier(.2, .9, .2, 1) infinite; }
+.kanban-ticket-bounce { animation: kanban-ticket-bounce 3s cubic-bezier(.18, .9, .24, 1) infinite; }
 
 @media (prefers-reduced-motion: reduce) {
   .landing-message,
@@ -130,8 +173,22 @@
   .landing-pulse,
   .portfolio-float-slow,
   .portfolio-float-fast,
-  .portfolio-flow-line {
+  .portfolio-flow-line,
+  .kanban-walkthrough-screen,
+  .kanban-flow-step,
+  .kanban-click-bounce,
+  .kanban-message-bounce,
+  .kanban-ticket-bounce {
     animation: none;
+  }
+
+  .kanban-walkthrough-screen {
+    opacity: 1;
+    position: static;
+  }
+
+  .kanban-walkthrough-screen:not(:first-child) {
+    display: none;
   }
 }
 
