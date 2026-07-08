@@ -24,7 +24,7 @@ export function AuthFormPanel({
   switchMode,
 }: AuthFormPanelProps) {
   return (
-    <section className="flex items-center justify-center p-6 sm:p-10">
+    <section className="flex items-start justify-center p-5 pb-10 sm:items-center sm:p-10">
       <div className="w-full max-w-sm">
         <div className="mb-8">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-600">

@@ -348,8 +348,8 @@ export function KanbanBoard({
 
   return (
     <>
-      <div className="flex min-h-14 items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-2.5 sm:px-6">
-        <label className="flex min-w-0 flex-1 items-center gap-2 text-slate-400 sm:max-w-xs">
+      <div className="flex min-h-14 flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 py-2.5 sm:flex-nowrap sm:gap-3 sm:px-6">
+        <label className="order-2 flex min-w-0 flex-1 basis-full items-center gap-2 text-slate-400 sm:order-1 sm:max-w-xs sm:basis-auto">
           <Search className="h-4 w-4 shrink-0" />
           <input
             value={query}
@@ -358,7 +358,7 @@ export function KanbanBoard({
             className="w-full bg-transparent text-xs text-slate-700 outline-none placeholder:text-slate-400"
           />
         </label>
-        <div ref={controlsRef} className="relative flex items-center gap-1 sm:gap-2">
+        <div ref={controlsRef} className="order-1 relative flex w-full items-center justify-end gap-1 sm:order-2 sm:w-auto sm:gap-2">
           {canCreate && <button type="button" onClick={() => openCreator('Pending')} className="flex items-center gap-1.5 rounded border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-medium text-slate-700 shadow-sm hover:border-violet-300 hover:text-violet-600">
             <Plus className="h-3.5 w-3.5" /><span className="hidden sm:inline">New ticket</span>
           </button>}
@@ -466,20 +466,22 @@ export function KanbanBoard({
             </button>
           </div>
         )}
-        <div className="grid min-h-[calc(100vh-7.5rem)] min-w-[760px] grid-cols-3 divide-x divide-slate-200 bg-slate-100/70">
-          {TICKET_STATUSES.map((status) => (
-            <KanbanColumn
-              key={status}
-              id={status}
-              title={status}
-              tickets={visibleTickets.filter((ticket) => ticket.status === status)}
-              onEdit={openEditor}
-              onAdd={openCreator}
-              canAdd={canCreate}
-              canDragTicket={canMoveTicket}
-              boardNames={organizationBoardNames}
-            />
-          ))}
+        <div className="overflow-x-auto">
+          <div className="grid min-h-[calc(100dvh-11rem)] min-w-[780px] grid-cols-3 divide-x divide-slate-200 bg-slate-100/70 sm:min-h-[calc(100dvh-7.5rem)]">
+            {TICKET_STATUSES.map((status) => (
+              <KanbanColumn
+                key={status}
+                id={status}
+                title={status}
+                tickets={visibleTickets.filter((ticket) => ticket.status === status)}
+                onEdit={openEditor}
+                onAdd={openCreator}
+                canAdd={canCreate}
+                canDragTicket={canMoveTicket}
+                boardNames={organizationBoardNames}
+              />
+            ))}
+          </div>
         </div>
         <DragOverlay dropAnimation={{ duration: 180, easing: 'ease-out' }}>
           {activeTicket ? (

@@ -15,7 +15,7 @@ export function NotificationSettingsPanel({
   settings,
 }: NotificationSettingsPanelProps) {
   return (
-    <section className="mt-7 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section className="mt-7 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
       <h2 className="text-sm font-semibold text-slate-800">Notifications</h2>
       <p className="mt-1 text-xs text-slate-400">Choose which in-app updates you want to see. Your choices follow you on every device.</p>
       <div className="mt-2">

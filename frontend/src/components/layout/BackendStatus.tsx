@@ -52,7 +52,7 @@ export function BackendStatus() {
       onClick={() => void checkBackend()}
       aria-label={`Backend ${labels[state]}. Click to check again.`}
       title="Backend service status — click to check again"
-      className={`inline-flex h-7 items-center gap-2 rounded-full border px-2.5 text-[10px] font-semibold transition hover:brightness-95 ${
+      className={`inline-flex h-7 items-center gap-1.5 rounded-full border px-2 text-[10px] font-semibold transition hover:brightness-95 sm:gap-2 sm:px-2.5 ${
         state === "online"
           ? "border-emerald-200 bg-emerald-50 text-emerald-700"
           : state === "offline"
@@ -69,7 +69,7 @@ export function BackendStatus() {
               : "animate-pulse bg-slate-400"
         }`}
       />
-      <span className="hidden sm:inline"></span> {labels[state]}
+      <span className="hidden min-[380px]:inline">{labels[state]}</span>
     </button>
   );
 }

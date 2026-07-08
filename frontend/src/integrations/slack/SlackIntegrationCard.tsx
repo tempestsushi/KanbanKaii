@@ -100,28 +100,28 @@ export function SlackIntegrationCard() {
   };
 
   return (
-    <article className="flex flex-col justify-between gap-5 rounded-lg border border-slate-200 p-5 sm:flex-row sm:items-center">
-      <div className="flex items-start gap-3">
+    <article className="flex min-w-0 flex-col justify-between gap-4 rounded-lg border border-slate-200 p-4 sm:flex-row sm:items-center sm:gap-5 sm:p-5">
+      <div className="flex min-w-0 items-start gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-xs font-bold text-violet-700">SL</div>
-        <div>
-          <div className="flex items-center gap-2">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-sm font-semibold text-slate-800">Slack</h3>
             <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${status.connected ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
               {isLoading ? 'Checking…' : status.connected ? 'Connected' : 'Not connected'}
             </span>
           </div>
-          <p className="mt-1 max-w-md text-xs leading-5 text-slate-400">
+          <p className="mt-1 max-w-md break-words text-xs leading-5 text-slate-400">
             {status.connected
               ? `Workspace: ${status.workspace_name}`
               : 'Authorize a workspace so tagged messages can enter AI triage.'}
           </p>
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 sm:flex sm:items-center">
         {status.connected && (
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button type="button" variant="outline" disabled={isDisconnecting || isLoading}>
+              <Button type="button" variant="outline" className="w-full sm:w-auto" disabled={isDisconnecting || isLoading}>
                 {isDisconnecting ? 'Disconnecting…' : 'Disconnect'}
               </Button>
             </AlertDialogTrigger>
@@ -141,7 +141,7 @@ export function SlackIntegrationCard() {
             </AlertDialogContent>
           </AlertDialog>
         )}
-        <Button type="button" variant="outline" disabled={isConnecting || isLoading} onClick={() => void connect()}>
+        <Button type="button" variant="outline" className="w-full sm:w-auto" disabled={isConnecting || isLoading} onClick={() => void connect()}>
           {isConnecting ? 'Opening Slack…' : status.connected ? 'Reconnect Slack' : 'Connect Slack'}
         </Button>
       </div>
