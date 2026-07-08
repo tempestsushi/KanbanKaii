@@ -1,4 +1,5 @@
 import type { AssignableRole, OrganizationMember } from '@/api/organizations';
+import { AppDropdown } from '@/components/ui/app-dropdown';
 import { organizationRoles, roleLabel } from './organization-ui';
 
 interface OrganizationMembersPanelProps {
@@ -50,9 +51,15 @@ export function OrganizationMembersPanel({
               </div>
               <div className="flex items-center gap-2">
                 {manageable ? (
-                  <select value={member.role} onChange={(event) => onRoleChange(member, event.target.value as AssignableRole)} className="rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-600">
-                    {organizationRoles.filter((role) => isOwner || role !== 'TEAM_LEAD').map((role) => <option key={role} value={role}>{roleLabel(role)}</option>)}
-                  </select>
+                  <AppDropdown
+                    ariaLabel={`Role for ${member.display_name}`}
+                    className="w-32"
+                    value={member.role as AssignableRole}
+                    onChange={(role) => onRoleChange(member, role)}
+                    options={organizationRoles
+                      .filter((role) => isOwner || role !== 'TEAM_LEAD')
+                      .map((role) => ({ value: role as AssignableRole, label: roleLabel(role) }))}
+                  />
                 ) : (
                   <span className="rounded-full bg-violet-50 px-2.5 py-1 text-[10px] font-semibold text-violet-700">{roleLabel(member.role)}</span>
                 )}

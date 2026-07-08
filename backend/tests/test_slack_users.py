@@ -45,7 +45,7 @@ class SlackUserServiceTests(TestCase):
     def test_resolves_sender_display_name(self) -> None:
         owner_id = uuid4()
         cipher = TokenCipher(Fernet.generate_key().decode("utf-8"))
-        repository = FakeRepository(cipher.encrypt("xoxb-token"))
+        repository = FakeRepository(cipher.encrypt("test-bot-token"))
         client = FakeHTTPClient()
         service = SlackUserService(repository, cipher, client)
 
@@ -56,5 +56,5 @@ class SlackUserServiceTests(TestCase):
         self.assertEqual(client.request[1], {"user": "U-AISHA"})
         self.assertEqual(
             client.request[2]["Authorization"],
-            "Bearer xoxb-token",
+            "Bearer test-bot-token",
         )

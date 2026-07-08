@@ -83,7 +83,7 @@ class FakeSlackResponse:
     def json(self):
         return {
             "ok": True,
-            "access_token": "xoxb-secret-token",
+            "access_token": "test-bot-token",
             "scope": "app_mentions:read,chat:write",
             "bot_user_id": "U-BOT",
             "team": {"id": "T-WORKSPACE", "name": "Acme Engineering"},
@@ -184,10 +184,10 @@ class SlackIntegrationTests(TestCase):
     def test_token_cipher_encrypts_and_decrypts_token(self) -> None:
         cipher = TokenCipher(Fernet.generate_key().decode("utf-8"))
 
-        ciphertext = cipher.encrypt("xoxb-secret-token")
+        ciphertext = cipher.encrypt("test-bot-token")
 
-        self.assertNotIn("xoxb-secret-token", ciphertext)
-        self.assertEqual(cipher.decrypt(ciphertext), "xoxb-secret-token")
+        self.assertNotIn("test-bot-token", ciphertext)
+        self.assertEqual(cipher.decrypt(ciphertext), "test-bot-token")
 
     def test_binding_status_parses_supabase_datetime_string(self) -> None:
         status = OrganizationSlackBindingStatus(
@@ -224,7 +224,7 @@ class SlackIntegrationTests(TestCase):
         )
         self.assertEqual(
             cipher.decrypt(repository.saved_installation["token_ciphertext"]),
-            "xoxb-secret-token",
+            "test-bot-token",
         )
         self.assertEqual(
             repository.saved_installation["scopes"],

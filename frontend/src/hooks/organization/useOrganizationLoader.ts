@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import {
   listMyOrganizationInvitations,
   listOrganizationBoardMembers,
@@ -47,7 +47,11 @@ export function useOrganizationLoader({
   setSelectedBoardId,
   setSlackBinding,
 }: OrganizationLoaderOptions) {
+  const loadInFlightRef = useRef(false);
+
   const loadOrganization = useCallback(async () => {
+    if (loadInFlightRef.current) return;
+    loadInFlightRef.current = true;
     setIsLoading(true);
     setError(null);
     try {
@@ -93,6 +97,7 @@ export function useOrganizationLoader({
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Could not load organization');
     } finally {
+      loadInFlightRef.current = false;
       setIsLoading(false);
     }
   }, [

@@ -9,6 +9,7 @@ import type {
 import type { OrganizationSlackBindingStatus } from '@/integrations/slack/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { AppDropdown } from '@/components/ui/app-dropdown';
 import { organizationBoardRoles, roleLabel } from './organization-ui';
 
 interface ProjectBoardsPanelProps {
@@ -164,15 +165,22 @@ export function ProjectBoardsPanel({
 
               {canManageSelectedBoard && (
                 <form onSubmit={onAddBoardMember} className="grid gap-2 sm:grid-cols-[1fr_150px_auto]">
-                  <select value={boardMemberUserId} onChange={(event) => onBoardMemberUserIdChange(event.target.value)} className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600" required>
-                    <option value="">Add organization member</option>
-                    {availableBoardMembers.map((member) => (
-                      <option key={member.user_id} value={member.user_id}>{member.display_name} · {roleLabel(member.role)}</option>
-                    ))}
-                  </select>
-                  <select value={boardMemberRole} onChange={(event) => onBoardMemberRoleChange(event.target.value as OrganizationBoardRole)} className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600">
-                    {organizationBoardRoles.map((role) => <option key={role} value={role}>{roleLabel(role)}</option>)}
-                  </select>
+                  <AppDropdown
+                    ariaLabel="Board member to add"
+                    value={boardMemberUserId}
+                    placeholder="Add organization member"
+                    onChange={onBoardMemberUserIdChange}
+                    options={availableBoardMembers.map((member) => ({
+                      value: member.user_id,
+                      label: `${member.display_name} · ${roleLabel(member.role)}`,
+                    }))}
+                  />
+                  <AppDropdown
+                    ariaLabel="Board member role"
+                    value={boardMemberRole}
+                    onChange={onBoardMemberRoleChange}
+                    options={organizationBoardRoles.map((role) => ({ value: role, label: roleLabel(role) }))}
+                  />
                   <Button disabled={isSaving || !boardMemberUserId}>Add member</Button>
                 </form>
               )}
@@ -202,9 +210,13 @@ export function ProjectBoardsPanel({
                       <MemberIdentity member={member} currentUserId={currentUserId} fallback="Board member" />
                       <div className="flex items-center gap-2">
                         {canManageBoardMember ? (
-                          <select value={member.role} onChange={(event) => onChangeBoardRole(member, event.target.value as OrganizationBoardRole)} className="rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-600">
-                            {organizationBoardRoles.map((role) => <option key={role} value={role}>{roleLabel(role)}</option>)}
-                          </select>
+                          <AppDropdown
+                            ariaLabel={`Board role for ${member.display_name}`}
+                            className="w-32"
+                            value={member.role}
+                            onChange={(role) => onChangeBoardRole(member, role)}
+                            options={organizationBoardRoles.map((role) => ({ value: role, label: roleLabel(role) }))}
+                          />
                         ) : (
                           <span className="rounded-full bg-violet-50 px-2.5 py-1 text-[10px] font-semibold text-violet-700">{roleLabel(member.role)}</span>
                         )}

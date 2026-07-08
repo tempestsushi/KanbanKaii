@@ -1,4 +1,5 @@
-import { Bell, UserRound } from 'lucide-react';
+import Bell from 'lucide-react/dist/esm/icons/bell';
+import UserRound from 'lucide-react/dist/esm/icons/user-round';
 import { useEffect, useRef, useState, type MouseEvent, type SyntheticEvent } from 'react';
 import { useAuth } from '@/auth/AuthContext';
 import { fetchTickets } from '@/api/tickets';

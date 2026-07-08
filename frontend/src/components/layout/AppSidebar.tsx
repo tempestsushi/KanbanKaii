@@ -1,13 +1,16 @@
-import { BarChart3, Building2, Columns3, Home } from 'lucide-react';
+import BarChart3 from 'lucide-react/dist/esm/icons/bar-chart-3';
+import Building2 from 'lucide-react/dist/esm/icons/building-2';
+import Columns3 from 'lucide-react/dist/esm/icons/columns-3';
+import Home from 'lucide-react/dist/esm/icons/home';
 import type { MouseEvent } from 'react';
 import { cn } from '@/lib/utils';
 import { navigateTo } from '@/lib/navigation';
 
 const navigation = [
-  { label: 'Home', href: '/dashboard', icon: Home },
-  { label: 'Analytics', href: '/analytics', icon: BarChart3 },
-  { label: 'Organization board', href: '/organization-board', icon: Columns3 },
-  { label: 'Organization', href: '/organization', icon: Building2 },
+  { label: 'Home', mobileLabel: 'Home', href: '/dashboard', icon: Home },
+  { label: 'Analytics', mobileLabel: 'Stats', href: '/analytics', icon: BarChart3 },
+  { label: 'Organization board', mobileLabel: 'Org board', href: '/organization-board', icon: Columns3 },
+  { label: 'Organization', mobileLabel: 'Org', href: '/organization', icon: Building2 },
 ];
 
 export function AppSidebar() {
@@ -32,7 +35,7 @@ export function AppSidebar() {
         </span>
       </a>
       <nav className="grid flex-1 grid-cols-4 items-center gap-1 px-2 py-2 sm:flex sm:flex-col sm:items-stretch sm:gap-2 sm:px-3 sm:py-4" aria-label="Primary navigation">
-        {navigation.map(({ label, href, icon: Icon }) => {
+        {navigation.map(({ label, mobileLabel, href, icon: Icon }) => {
           const active = pathname === href;
           return (
             <a
@@ -48,7 +51,8 @@ export function AppSidebar() {
               )}
             >
               <Icon className="h-[18px] w-[18px] shrink-0" />
-              <span className="max-w-full truncate px-1 text-[10px] font-semibold leading-none sm:px-0 sm:text-xs">{label}</span>
+              <span className="max-w-full truncate px-1 text-[10px] font-semibold leading-none sm:hidden">{mobileLabel}</span>
+              <span className="hidden text-xs font-semibold sm:block">{label}</span>
             </a>
           );
         })}

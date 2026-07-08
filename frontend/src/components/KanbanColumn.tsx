@@ -1,10 +1,13 @@
-import { useState, type UIEvent, type WheelEvent } from 'react';
+import { useEffect, useState, type UIEvent, type WheelEvent } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { cn } from '@/lib/utils';
 import { TicketCard } from './TicketCard';
+import { TicketCardSkeleton } from './TicketCardSkeleton';
 import type { Ticket, TicketStatus } from '@/types/ticket';
-import { Plus } from 'lucide-react';
+import Plus from 'lucide-react/dist/esm/icons/plus';
+
+const COLUMN_BATCH_SIZE = 3;
 
 interface KanbanColumnProps {
   id: TicketStatus;
@@ -15,17 +18,28 @@ interface KanbanColumnProps {
   canAdd?: boolean;
   canDragTicket?: (ticket: Ticket) => boolean;
   boardNames?: Record<string, string>;
+  isLoading?: boolean;
 }
 
-export function KanbanColumn({ id, title, tickets, onEdit, onAdd, canAdd = true, canDragTicket = () => true, boardNames = {} }: KanbanColumnProps) {
+export function KanbanColumn({ id, title, tickets, onEdit, onAdd, canAdd = true, canDragTicket = () => true, boardNames = {}, isLoading = false }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id });
-  const [visibleCount, setVisibleCount] = useState(3);
+  const [visibleCount, setVisibleCount] = useState(COLUMN_BATCH_SIZE);
   const visibleTickets = tickets.slice(0, visibleCount);
   const hasMoreTickets = visibleCount < tickets.length;
+  const shouldShowSkeletons = isLoading && visibleTickets.length === 0;
+
+  useEffect(() => {
+    setVisibleCount((count) =>
+      Math.min(
+        Math.max(COLUMN_BATCH_SIZE, count),
+        Math.max(COLUMN_BATCH_SIZE, tickets.length),
+      ),
+    );
+  }, [tickets.length]);
 
   const showNextBatch = () => {
     if (hasMoreTickets) {
-      setVisibleCount((count) => Math.min(count + 3, tickets.length));
+      setVisibleCount((count) => Math.min(count + COLUMN_BATCH_SIZE, tickets.length));
     }
   };
 
@@ -60,17 +74,25 @@ export function KanbanColumn({ id, title, tickets, onEdit, onAdd, canAdd = true,
       </div>
 
       <div className="min-h-[240px] flex-1 space-y-2.5">
-        <SortableContext items={visibleTickets.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-          {visibleTickets.map((ticket) => (
-            <TicketCard
-              key={ticket.id}
-              ticket={ticket}
-              onEdit={onEdit}
-              boardName={ticket.boardId ? boardNames[ticket.boardId] : undefined}
-              draggable={canDragTicket(ticket)}
-            />
-          ))}
-        </SortableContext>
+        {shouldShowSkeletons ? (
+          <div aria-label={`${title} tickets loading`} className="space-y-2.5">
+            {Array.from({ length: COLUMN_BATCH_SIZE }).map((_, index) => (
+              <TicketCardSkeleton key={`${id}-skeleton-${index}`} />
+            ))}
+          </div>
+        ) : (
+          <SortableContext items={visibleTickets.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+            {visibleTickets.map((ticket) => (
+              <TicketCard
+                key={ticket.id}
+                ticket={ticket}
+                onEdit={onEdit}
+                boardName={ticket.boardId ? boardNames[ticket.boardId] : undefined}
+                draggable={canDragTicket(ticket)}
+              />
+            ))}
+          </SortableContext>
+        )}
         {hasMoreTickets && (
           <button
             type="button"
@@ -81,7 +103,6 @@ export function KanbanColumn({ id, title, tickets, onEdit, onAdd, canAdd = true,
           </button>
         )}
       </div>
-      {canAdd && <button onClick={() => onAdd(title)} className="mt-2 flex items-center gap-1 py-1 text-[11px] font-medium text-slate-400 hover:text-violet-600"><Plus className="h-3.5 w-3.5" /> New</button>}
     </div>
   );
 }

@@ -53,7 +53,7 @@ def configured_service(payload):
     repository = FakeRepository(
         SimpleNamespace(
             workspace_name="Acme Engineering",
-            token_ciphertext=cipher.encrypt("xoxb-token"),
+            token_ciphertext=cipher.encrypt("test-bot-token"),
         )
     )
     http_client = FakeHTTPClient(payload)
@@ -75,7 +75,7 @@ class SlackConnectionServiceTests(TestCase):
         self.assertEqual(client.requests[0][0], SLACK_AUTH_TEST_URL)
         self.assertEqual(
             client.requests[0][1]["Authorization"],
-            "Bearer xoxb-token",
+            "Bearer test-bot-token",
         )
 
     def test_revoked_token_removes_stale_installation(self) -> None:

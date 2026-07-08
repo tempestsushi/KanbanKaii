@@ -2,7 +2,10 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
 import type { Ticket } from '@/types/ticket';
-import { Github, GripVertical, MessageSquare, UserRound } from 'lucide-react';
+import Github from 'lucide-react/dist/esm/icons/github';
+import GripVertical from 'lucide-react/dist/esm/icons/grip-vertical';
+import MessageSquare from 'lucide-react/dist/esm/icons/message-square';
+import UserRound from 'lucide-react/dist/esm/icons/user-round';
 
 interface TicketCardProps {
   ticket: Ticket;

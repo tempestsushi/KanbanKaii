@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -12,7 +12,10 @@ import {
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { toast } from 'sonner';
-import { ArrowDownUp, ListFilter, Plus, Search } from 'lucide-react';
+import ArrowDownUp from 'lucide-react/dist/esm/icons/arrow-down-up';
+import ListFilter from 'lucide-react/dist/esm/icons/list-filter';
+import Plus from 'lucide-react/dist/esm/icons/plus';
+import Search from 'lucide-react/dist/esm/icons/search';
 import {
   createTicket,
   createOrganizationTicket,
@@ -39,6 +42,7 @@ import {
 } from '@/types/ticket';
 import { KanbanColumn } from './KanbanColumn';
 import { TicketCard } from './TicketCard';
+import { Skeleton } from '@/components/ui/skeleton';
 import { getSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/auth/AuthContext';
 import { notificationSettingsFromUser } from '@/api/settings';
@@ -75,6 +79,7 @@ interface KanbanBoardProps {
   organizationBoardNames?: Record<string, string>;
   organizationRole?: OrganizationRole;
   organizationMembers?: Array<{ user_id: string; display_name: string }>;
+  toolbarContext?: ReactNode;
 }
 
 export function KanbanBoard({
@@ -84,6 +89,7 @@ export function KanbanBoard({
   organizationBoardNames = {},
   organizationRole,
   organizationMembers = [],
+  toolbarContext,
 }: KanbanBoardProps) {
   const { user } = useAuth();
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -349,7 +355,12 @@ export function KanbanBoard({
   return (
     <>
       <div className="flex min-h-14 flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 py-2.5 sm:flex-nowrap sm:gap-3 sm:px-6">
-        <label className="order-2 flex min-w-0 flex-1 basis-full items-center gap-2 text-slate-400 sm:order-1 sm:max-w-xs sm:basis-auto">
+        {toolbarContext && (
+          <div className="order-1 min-w-0 flex-1 basis-0">
+            {toolbarContext}
+          </div>
+        )}
+        <label className="order-3 flex min-w-0 flex-1 basis-full items-center gap-2 text-slate-400 sm:order-2 sm:max-w-xs sm:basis-auto">
           <Search className="h-4 w-4 shrink-0" />
           <input
             value={query}
@@ -358,7 +369,7 @@ export function KanbanBoard({
             className="w-full bg-transparent text-xs text-slate-700 outline-none placeholder:text-slate-400"
           />
         </label>
-        <div ref={controlsRef} className="order-1 relative flex w-full items-center justify-end gap-1 sm:order-2 sm:w-auto sm:gap-2">
+        <div ref={controlsRef} className="order-2 relative ml-auto flex w-auto shrink-0 items-center justify-end gap-1 sm:order-3 sm:gap-2">
           {canCreate && <button type="button" onClick={() => openCreator('Pending')} className="flex items-center gap-1.5 rounded border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-medium text-slate-700 shadow-sm hover:border-violet-300 hover:text-violet-600">
             <Plus className="h-3.5 w-3.5" /><span className="hidden sm:inline">New ticket</span>
           </button>}
@@ -449,9 +460,12 @@ export function KanbanBoard({
         onDragCancel={() => setActiveId(null)}
         onDragEnd={handleDragEnd}
       >
-        {isLoading && (
-          <div className="border-b border-slate-200 bg-white px-6 py-2 text-xs text-slate-500">
-            Loading tickets…
+        {isLoading && tickets.length > 0 && (
+          <div className="border-b border-slate-200 bg-white px-6 py-2">
+            <div className="flex items-center gap-3 text-[11px] font-medium text-slate-500">
+              <Skeleton className="h-1.5 flex-1 rounded-full bg-violet-100" />
+              Refreshing tickets…
+            </div>
           </div>
         )}
         {loadError && (
@@ -479,6 +493,7 @@ export function KanbanBoard({
                 canAdd={canCreate}
                 canDragTicket={canMoveTicket}
                 boardNames={organizationBoardNames}
+                isLoading={isLoading}
               />
             ))}
           </div>

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+from datetime import datetime, timezone
 from typing import Any, NoReturn
 from uuid import UUID
 
@@ -354,6 +355,40 @@ class OrganizationRepository:
         except APIError as error:
             _raise_database_error(error, "Supabase could not leave the organization")
 
+    def ensure_invite_manager(self, organization_id: UUID, user_id: UUID) -> None:
+        members = self.list_members(organization_id)
+        current_member = next(
+            (member for member in members if member.user_id == user_id),
+            None,
+        )
+        if current_member is None:
+            raise OrganizationPermissionError("Organization membership is required")
+        if current_member.role not in {"OWNER", "TEAM_LEAD"}:
+            raise OrganizationPermissionError(
+                "Organization invitation is not permitted"
+            )
+
+    def accept_redis_invite(
+        self,
+        organization_id: UUID,
+        default_role: AssignableRole,
+        created_by: UUID,
+        intended_email: str,
+    ) -> UUID:
+        try:
+            result = self.client.rpc(
+                "accept_redis_organization_invitation",
+                {
+                    "p_organization_id": str(organization_id),
+                    "p_default_role": default_role,
+                    "p_created_by": str(created_by),
+                    "p_intended_email": intended_email,
+                },
+            ).execute()
+        except APIError as error:
+            _raise_database_error(error, "Supabase could not accept the invitation")
+        return _uuid_result(result.data)
+
     def create_invite(self, organization_id: UUID, token_hash: str, intended_email: str | None, role: AssignableRole, expires_at: str) -> OrganizationInviteResponse:
         try:
             result = self.client.rpc("create_organization_invite", {
@@ -375,9 +410,17 @@ class OrganizationRepository:
             result = self.client.table("organization_invites").select(columns).eq(
                 "organization_id", str(organization_id)
             ).order("created_at", desc=True).execute()
-            return [
+            now = datetime.now(timezone.utc)
+            invites = [
                 OrganizationInviteResponse.model_validate_json(json.dumps(row))
                 for row in result.data
+            ]
+            return [
+                invite for invite in invites
+                if invite.accepted_at is None
+                and invite.revoked_at is None
+                and invite.declined_at is None
+                and invite.expires_at > now
             ]
         except (APIError, ValidationError, TypeError) as error:
             raise OrganizationRepositoryError("Supabase could not load invitations") from error

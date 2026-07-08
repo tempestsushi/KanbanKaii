@@ -19,19 +19,58 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 
+const SLACK_STATUS_CACHE_KEY = 'kanbankaii:slack-connection-status';
+const SLACK_STATUS_CACHE_TTL_MS = 2 * 60 * 1000;
+
+type CachedSlackConnectionStatus = SlackConnectionStatus & {
+  savedAt: number;
+};
+
+function readSlackStatusCache(): SlackConnectionStatus | null {
+  try {
+    const raw = window.sessionStorage.getItem(SLACK_STATUS_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<CachedSlackConnectionStatus>;
+    if (
+      typeof parsed.connected !== 'boolean' ||
+      typeof parsed.savedAt !== 'number' ||
+      Date.now() - parsed.savedAt > SLACK_STATUS_CACHE_TTL_MS
+    ) {
+      return null;
+    }
+    return {
+      connected: parsed.connected,
+      workspace_name: typeof parsed.workspace_name === 'string' ? parsed.workspace_name : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeSlackStatusCache(status: SlackConnectionStatus) {
+  window.sessionStorage.setItem(
+    SLACK_STATUS_CACHE_KEY,
+    JSON.stringify({ ...status, savedAt: Date.now() }),
+  );
+}
+
 export function SlackIntegrationCard() {
+  const [cachedStatus] = useState(readSlackStatusCache);
+  const [hasCachedStatus] = useState(Boolean(cachedStatus));
   const [isConnecting, setIsConnecting] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!cachedStatus);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
-  const [status, setStatus] = useState<SlackConnectionStatus>({
+  const [status, setStatus] = useState<SlackConnectionStatus>(cachedStatus ?? {
     connected: false,
     workspace_name: null,
   });
 
-  const loadStatus = useCallback(async () => {
-    setIsLoading(true);
+  const loadStatus = useCallback(async (showLoading = !hasCachedStatus) => {
+    if (showLoading) setIsLoading(true);
     try {
-      setStatus(await getSlackConnectionStatus());
+      const nextStatus = await getSlackConnectionStatus();
+      setStatus(nextStatus);
+      writeSlackStatusCache(nextStatus);
     } catch (error) {
       if (error instanceof TypeError) return;
       toast.error(
@@ -40,7 +79,7 @@ export function SlackIntegrationCard() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [hasCachedStatus]);
 
   useEffect(() => {
     const query = new URLSearchParams(window.location.search);
@@ -53,8 +92,8 @@ export function SlackIntegrationCard() {
     if (result) {
       window.history.replaceState({}, '', window.location.pathname);
     }
-    void loadStatus();
-  }, [loadStatus]);
+    void loadStatus(!cachedStatus);
+  }, [cachedStatus, loadStatus]);
 
   useEffect(() => {
     const handlePageShow = (event: PageTransitionEvent) => {
@@ -62,7 +101,7 @@ export function SlackIntegrationCard() {
       // the browser cache with its old `isConnecting` state still intact.
       if (!event.persisted) return;
       setIsConnecting(false);
-      void loadStatus();
+      void loadStatus(false);
     };
 
     window.addEventListener('pageshow', handlePageShow);
@@ -88,7 +127,9 @@ export function SlackIntegrationCard() {
     setIsDisconnecting(true);
     try {
       await disconnectSlack();
-      setStatus({ connected: false, workspace_name: null });
+      const nextStatus = { connected: false, workspace_name: null };
+      setStatus(nextStatus);
+      writeSlackStatusCache(nextStatus);
       toast.success('Slack disconnected');
     } catch (error) {
       toast.error(
@@ -102,7 +143,9 @@ export function SlackIntegrationCard() {
   return (
     <article className="flex min-w-0 flex-col justify-between gap-4 rounded-lg border border-slate-200 p-4 sm:flex-row sm:items-center sm:gap-5 sm:p-5">
       <div className="flex min-w-0 items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-xs font-bold text-violet-700">SL</div>
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violet-100">
+          <SlackMark />
+        </div>
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-sm font-semibold text-slate-800">Slack</h3>
@@ -117,7 +160,7 @@ export function SlackIntegrationCard() {
           </p>
         </div>
       </div>
-      <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 sm:flex sm:items-center">
+      <div className="flex flex-col gap-2 min-[420px]:flex-row min-[420px]:items-center">
         {status.connected && (
           <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -146,5 +189,16 @@ export function SlackIntegrationCard() {
         </Button>
       </div>
     </article>
+  );
+}
+
+function SlackMark() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 122.8 122.8" className="h-5 w-5">
+      <path fill="#36C5F0" d="M25.8 77.6c0 7.1-5.8 12.9-12.9 12.9S0 84.7 0 77.6s5.8-12.9 12.9-12.9h12.9v12.9zM32.3 77.6c0-7.1 5.8-12.9 12.9-12.9s12.9 5.8 12.9 12.9v32.3c0 7.1-5.8 12.9-12.9 12.9s-12.9-5.8-12.9-12.9V77.6z" />
+      <path fill="#2EB67D" d="M45.2 25.8c-7.1 0-12.9-5.8-12.9-12.9S38.1 0 45.2 0s12.9 5.8 12.9 12.9v12.9H45.2zM45.2 32.3c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9H12.9C5.8 58.1 0 52.3 0 45.2s5.8-12.9 12.9-12.9h32.3z" />
+      <path fill="#ECB22E" d="M97 45.2c0-7.1 5.8-12.9 12.9-12.9s12.9 5.8 12.9 12.9-5.8 12.9-12.9 12.9H97V45.2zM90.5 45.2c0 7.1-5.8 12.9-12.9 12.9s-12.9-5.8-12.9-12.9V12.9C64.7 5.8 70.5 0 77.6 0s12.9 5.8 12.9 12.9v32.3z" />
+      <path fill="#E01E5A" d="M77.6 97c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9-12.9-5.8-12.9-12.9V97h12.9zM77.6 90.5c-7.1 0-12.9-5.8-12.9-12.9s5.8-12.9 12.9-12.9h32.3c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9H77.6z" />
+    </svg>
   );
 }

@@ -51,9 +51,8 @@ export function useOrganizationInvitations({
     if (!organization) return;
     try {
       await revokeOrganizationInvite(organization.id, invite.id);
-      setInvites((items) =>
-        items.map((item) => item.id === invite.id ? { ...item, revoked_at: new Date().toISOString() } : item),
-      );
+      setInvites((items) => items.filter((item) => item.id !== invite.id));
+      toast.success('Invitation revoked');
     } catch (reason) {
       toast.error(reason instanceof Error ? reason.message : 'Could not revoke invitation');
     }
