@@ -124,20 +124,25 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section id="features" className="relative z-10 overflow-hidden px-5 py-24 sm:px-8 lg:px-10">
+      <section id="features" className="relative z-10 overflow-hidden px-5 pb-16 pt-24 sm:px-8 lg:px-10">
         <div className="landing-grid absolute inset-0 opacity-45" aria-hidden="true" />
         <div className="absolute -left-28 top-12 h-80 w-80 rounded-full bg-violet-300/35 blur-3xl" aria-hidden="true" />
         <div className="absolute right-[-8rem] bottom-0 h-96 w-96 rounded-full bg-indigo-300/35 blur-3xl" aria-hidden="true" />
         <div className="absolute left-1/3 top-1/2 h-72 w-72 rounded-full bg-fuchsia-200/35 blur-3xl" aria-hidden="true" />
 
-        <div className="relative mx-auto grid max-w-7xl gap-14 rounded-[2rem] border border-violet-100 bg-white/68 p-7 shadow-xl shadow-violet-100/40 backdrop-blur-xl sm:p-12 lg:grid-cols-2 lg:items-center">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-violet-600">Built for focused work</p>
-            <h2 className="mt-4 max-w-lg text-4xl font-black tracking-[-0.045em] sm:text-5xl">A quieter path from message to momentum.</h2>
+        <div className="relative mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+          <div className="max-w-2xl">
+            <p className="inline-flex rounded-full border border-violet-200 bg-white/80 px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] text-violet-600 shadow-sm shadow-violet-100/70 backdrop-blur">
+              Built for focused work
+            </p>
+            <h2 className="mt-7 max-w-xl text-5xl font-black leading-[0.98] tracking-[-0.055em] text-slate-950 sm:text-6xl">
+              A quieter path from message to momentum.
+            </h2>
           </div>
-          <div className="space-y-4">
+
+          <div className="space-y-4 lg:pt-20">
             {benefits.map((benefit) => (
-              <div key={benefit} className="flex items-center gap-4 rounded-xl bg-white/70 px-4 py-4 text-sm font-semibold text-slate-700 shadow-sm shadow-violet-100/50 ring-1 ring-violet-50 backdrop-blur">
+              <div key={benefit} className="flex items-center gap-4 rounded-2xl border border-violet-100 bg-white/78 px-4 py-4 text-sm font-semibold text-slate-700 shadow-lg shadow-violet-100/35 backdrop-blur">
                 <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-violet-100 text-violet-700"><Check className="h-4 w-4" /></span>
                 {benefit}
               </div>
@@ -146,20 +151,27 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section className="relative z-10 overflow-hidden px-5 pb-24 sm:px-8 lg:px-10">
-        <div className="landing-grid absolute inset-0 opacity-35" aria-hidden="true" />
-        <div className="absolute left-[-6rem] top-[-3rem] h-80 w-80 rounded-full bg-violet-300/45 blur-3xl" aria-hidden="true" />
-        <div className="absolute right-[-5rem] bottom-[-5rem] h-96 w-96 rounded-full bg-indigo-300/45 blur-3xl" aria-hidden="true" />
+      <section className="relative z-10 overflow-hidden bg-slate-950 px-5 py-24 text-white sm:px-8 lg:px-10">
+        <div className="absolute left-[-10rem] top-[-7rem] h-[32rem] w-[32rem] rounded-full bg-violet-600/20 blur-[100px]" aria-hidden="true" />
+        <div className="absolute right-[-12rem] bottom-[-12rem] h-[34rem] w-[34rem] rounded-full bg-indigo-600/15 blur-[110px]" aria-hidden="true" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_14%_22%,rgba(124,58,237,0.18),transparent_34%),radial-gradient(circle_at_86%_80%,rgba(79,70,229,0.14),transparent_36%)]" aria-hidden="true" />
 
-        <div className="relative mx-auto flex max-w-7xl flex-col items-center overflow-hidden rounded-[2rem] bg-gradient-to-br from-violet-600 via-violet-600 to-indigo-600 px-6 py-16 text-center text-white shadow-2xl shadow-violet-200/70 sm:px-12">
-          <div className="absolute -left-16 top-0 h-52 w-52 rounded-full bg-white/15 blur-3xl" aria-hidden="true" />
-          <div className="absolute right-0 bottom-0 h-64 w-64 rounded-full bg-indigo-300/25 blur-3xl" aria-hidden="true" />
-          <h2 className="max-w-2xl text-4xl font-black tracking-[-0.045em] sm:text-5xl">Give every real request somewhere to go.</h2>
-          <p className="mt-5 max-w-xl text-sm leading-7 text-violet-100">Connect Slack, keep your conversations natural, and let your private board collect the work worth doing.</p>
-          <a className="mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-bold text-violet-700 shadow-xl transition hover:-translate-y-0.5" href={workspaceHref}>
-            {workspaceLabel}
-            <ArrowRight className="h-4 w-4" />
-          </a>
+        <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.75fr_1.25fr] lg:items-center">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-violet-400">Ready when you are</p>
+            <h2 className="mt-4 max-w-2xl text-5xl font-black leading-[0.98] tracking-[-0.055em] sm:text-6xl">
+              Give every real request somewhere to go.
+            </h2>
+          </div>
+          <div className="max-w-2xl lg:justify-self-end">
+            <p className="text-sm leading-7 text-slate-400 sm:text-base sm:leading-8">
+              Connect Slack, keep your conversations natural, and let your private board collect the work worth doing.
+            </p>
+            <a className="mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-bold text-violet-700 shadow-xl shadow-violet-950/30 transition hover:-translate-y-0.5 hover:bg-violet-50" href={workspaceHref}>
+              {workspaceLabel}
+              <ArrowRight className="h-4 w-4" />
+            </a>
+          </div>
         </div>
       </section>
 
