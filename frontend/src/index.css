@@ -79,6 +79,22 @@
   50% { transform: scale(1.4); opacity: 1; }
 }
 
+@keyframes portfolio-float-slow {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(-1deg); }
+  50% { transform: translate3d(0, -12px, 0) rotate(1deg); }
+}
+
+@keyframes portfolio-float-fast {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(1deg); }
+  50% { transform: translate3d(0, 10px, 0) rotate(-1deg); }
+}
+
+@keyframes portfolio-flow-dash {
+  0% { opacity: .25; transform: translateX(-8px) rotate(8deg); }
+  50% { opacity: .9; }
+  100% { opacity: .25; transform: translateX(8px) rotate(8deg); }
+}
+
 .landing-grid {
   background-image:
     linear-gradient(to right, rgba(109, 83, 170, .07) 1px, transparent 1px),
@@ -87,16 +103,33 @@
   mask-image: linear-gradient(to bottom, black, transparent 88%);
 }
 
+.portfolio-mockup-grid {
+  background:
+    radial-gradient(circle at 12% 18%, rgba(139, 92, 246, .22), transparent 28%),
+    radial-gradient(circle at 82% 24%, rgba(99, 102, 241, .2), transparent 26%),
+    linear-gradient(to right, rgba(109, 83, 170, .08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(109, 83, 170, .08) 1px, transparent 1px);
+  background-size: auto, auto, 38px 38px, 38px 38px;
+  mask-image: linear-gradient(to bottom, black 70%, transparent);
+}
+
 .landing-message { animation: landing-message-in 7s ease-out infinite; }
 .landing-thinking { animation: landing-thinking-in 7s ease-out infinite; }
 .landing-ticket { animation: landing-ticket-in 7s cubic-bezier(.2, .8, .2, 1) infinite; }
 .landing-pulse { animation: landing-pulse 1.1s ease-in-out infinite; }
+.portfolio-float-slow { animation: portfolio-float-slow 7s ease-in-out infinite; }
+.portfolio-float-fast { animation: portfolio-float-fast 6s ease-in-out infinite; }
+.portfolio-flow-line { animation: portfolio-flow-dash 2.6s ease-in-out infinite; }
+.portfolio-flow-line-two { animation-delay: .55s; }
 
 @media (prefers-reduced-motion: reduce) {
   .landing-message,
   .landing-thinking,
   .landing-ticket,
-  .landing-pulse {
+  .landing-pulse,
+  .portfolio-float-slow,
+  .portfolio-float-fast,
+  .portfolio-flow-line {
     animation: none;
   }
 }

@@ -93,74 +93,7 @@ export function LandingPage() {
             </div>
           </div>
 
-          <div className="relative mx-auto w-full max-w-2xl lg:mx-0">
-            <div className="absolute -inset-5 -rotate-2 rounded-[2rem] bg-violet-300/30 blur-sm" aria-hidden="true" />
-            <div className="relative overflow-hidden rounded-[1.6rem] border border-white/90 bg-white/90 p-3 shadow-[0_32px_80px_-28px_rgba(50,35,95,0.38)] backdrop-blur sm:p-5">
-              <div className="mb-4 flex items-center justify-between px-1">
-                <div className="flex items-center gap-2">
-                  <span className="h-2.5 w-2.5 rounded-full bg-rose-400" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
-                </div>
-                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Live workflow</span>
-              </div>
-
-              <div className="grid min-h-[390px] gap-3 rounded-2xl bg-[#f2f1f7] p-3 sm:grid-cols-[0.88fr_1.12fr] sm:p-4">
-                <div className="flex flex-col rounded-xl bg-[#221f2c] p-4 text-white">
-                  <div className="flex items-center gap-2 text-xs font-bold text-slate-300">
-                    <MessageSquare className="h-4 w-4 text-violet-400" />
-                    #product-team
-                  </div>
-                  <div className="landing-message mt-auto rounded-xl rounded-bl-sm bg-white/10 p-3.5">
-                    <div className="mb-2 flex items-center gap-2">
-                      <span className="grid h-7 w-7 place-items-center rounded-lg bg-amber-300 text-[10px] font-black text-amber-950">AK</span>
-                      <span className="text-xs font-bold">Aisha</span>
-                      <span className="text-[9px] text-slate-500">now</span>
-                    </div>
-                    <p className="text-xs leading-5 text-slate-200">
-                      <span className="rounded bg-violet-500/30 px-1 text-violet-200">@Noah</span> please fix the checkout validation before tomorrow.
-                    </p>
-                  </div>
-                  <div className="landing-thinking mt-3 flex items-center gap-2 rounded-lg border border-violet-400/20 bg-violet-400/10 px-3 py-2 text-[10px] font-semibold text-violet-200">
-                    <span className="landing-pulse h-1.5 w-1.5 rounded-full bg-violet-400" />
-                    AI is checking for action…
-                  </div>
-                </div>
-
-                <div className="rounded-xl bg-white p-3 shadow-sm">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                    <div>
-                      <p className="text-xs font-black text-slate-900">My board</p>
-                      <p className="mt-0.5 text-[9px] text-slate-400">Realtime workspace</p>
-                    </div>
-                    <span className="rounded-md bg-violet-50 px-2 py-1 text-[9px] font-bold text-violet-700">KanbanKaii</span>
-                  </div>
-                  <div className="mt-3 grid h-[298px] grid-cols-3 gap-2">
-                    {['Pending', 'In progress', 'Completed'].map((column, index) => (
-                      <div key={column} className="rounded-lg bg-slate-50 p-2">
-                        <div className="mb-2 flex items-center justify-between">
-                          <span className="text-[8px] font-bold text-slate-600">{column}</span>
-                          <span className="text-[8px] text-slate-300">{index === 0 ? '2' : index}</span>
-                        </div>
-                        {index === 0 && (
-                          <div className="landing-ticket rounded-lg border border-violet-100 bg-white p-2 shadow-sm">
-                            <span className="rounded bg-rose-50 px-1.5 py-0.5 text-[7px] font-bold text-rose-600">HIGH</span>
-                            <p className="mt-2 text-[9px] font-black leading-3 text-slate-800">Fix checkout validation</p>
-                            <p className="mt-1.5 text-[7px] leading-3 text-slate-400">Resolve the checkout error before tomorrow.</p>
-                            <div className="mt-3 flex items-center justify-between">
-                              <span className="rounded bg-violet-50 px-1 text-[7px] font-bold text-violet-600">Slack</span>
-                              <span className="grid h-4 w-4 place-items-center rounded-full bg-amber-200 text-[6px] font-black">AK</span>
-                            </div>
-                          </div>
-                        )}
-                        {index > 0 && <div className="h-12 rounded-md border border-dashed border-slate-200" />}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <KanbanKaiiPortfolioMockup />
         </section>
       </div>
 
@@ -222,5 +155,97 @@ export function LandingPage() {
         </div>
       </footer>
     </main>
+  );
+}
+
+function KanbanKaiiPortfolioMockup() {
+  return (
+    <div className="relative mx-auto min-h-[520px] w-full max-w-2xl lg:mx-0">
+      <div className="absolute inset-4 rounded-[2.5rem] bg-violet-300/25 blur-3xl" aria-hidden="true" />
+      <div className="portfolio-mockup-grid absolute inset-0 rounded-[2rem]" aria-hidden="true" />
+
+      <div className="portfolio-float-slow absolute left-0 top-8 z-20 w-[min(22rem,88vw)] rounded-[1.4rem] border border-white/70 bg-[#201d2b] p-4 text-white shadow-[0_30px_90px_-35px_rgba(31,24,62,0.75)]">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs font-bold text-violet-100">
+            <span className="grid h-7 w-7 place-items-center rounded-xl bg-violet-500/25">
+              <MessageSquare className="h-4 w-4 text-violet-200" />
+            </span>
+            Slack mention
+          </div>
+          <span className="rounded-full bg-emerald-400/15 px-2 py-1 text-[9px] font-black text-emerald-200">LIVE</span>
+        </div>
+        <div className="landing-message mt-5 rounded-2xl rounded-bl-md bg-white/10 p-4 ring-1 ring-white/10">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="grid h-8 w-8 place-items-center rounded-xl bg-amber-300 text-[10px] font-black text-amber-950">AK</span>
+            <div>
+              <p className="text-xs font-black">Aisha</p>
+              <p className="text-[9px] text-slate-400">#product-team · now</p>
+            </div>
+          </div>
+          <p className="text-sm leading-6 text-slate-100">
+            <span className="rounded bg-violet-500/30 px-1.5 py-0.5 text-violet-100">@Noah</span> can you fix the checkout validation before tomorrow?
+          </p>
+        </div>
+      </div>
+
+      <div className="portfolio-flow-line portfolio-flow-line-one absolute left-[35%] top-[11rem] z-10 hidden h-24 w-44 rounded-full border-t-2 border-dashed border-violet-300/70 md:block" aria-hidden="true" />
+      <div className="portfolio-flow-line portfolio-flow-line-two absolute right-[18%] top-[17rem] z-10 hidden h-24 w-44 rounded-full border-t-2 border-dashed border-indigo-300/70 md:block" aria-hidden="true" />
+
+      <div className="portfolio-float-fast absolute right-2 top-48 z-30 w-[min(19rem,82vw)] rounded-[1.35rem] border border-violet-100 bg-white/95 p-4 shadow-[0_28px_70px_-35px_rgba(79,70,229,0.75)] backdrop-blur">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-black text-slate-900">AI triage queue</p>
+          <span className="rounded-full bg-violet-50 px-2 py-1 text-[9px] font-black text-violet-700">Redis</span>
+        </div>
+        <div className="landing-thinking mt-4 space-y-3">
+          {[
+            ['Actionable task', 'true'],
+            ['Priority', 'High'],
+            ['Assignee', 'Noah'],
+          ].map(([label, value]) => (
+            <div key={label} className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2">
+              <span className="text-[10px] font-semibold text-slate-400">{label}</span>
+              <span className="text-[10px] font-black text-slate-800">{value}</span>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 flex items-center gap-2 rounded-xl bg-violet-600 px-3 py-2 text-[10px] font-bold text-white">
+          <span className="landing-pulse h-1.5 w-1.5 rounded-full bg-white" />
+          Structured JSON emitted
+        </div>
+      </div>
+
+      <div className="absolute bottom-2 left-6 right-0 z-20 rounded-[1.7rem] border border-white/80 bg-white/90 p-4 shadow-[0_35px_110px_-48px_rgba(30,41,59,0.65)] backdrop-blur sm:left-16 sm:p-5">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-black text-slate-950">KanbanKaii board</p>
+            <p className="mt-1 text-[10px] font-medium text-slate-400">Ticket created from Slack in realtime</p>
+          </div>
+          <span className="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black text-emerald-700">Online</span>
+        </div>
+        <div className="grid h-56 grid-cols-3 gap-3">
+          {['Pending', 'In progress', 'Completed'].map((column, index) => (
+            <div key={column} className="rounded-2xl bg-slate-100/80 p-3">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="text-[10px] font-black text-slate-600">{column}</span>
+                <span className="text-[10px] text-slate-400">{index === 0 ? '1' : '0'}</span>
+              </div>
+              {index === 0 ? (
+                <div className="landing-ticket rounded-2xl border border-violet-100 bg-white p-3 shadow-lg shadow-violet-100/60">
+                  <span className="rounded-md bg-rose-50 px-2 py-1 text-[8px] font-black text-rose-600">HIGH</span>
+                  <h3 className="mt-3 text-xs font-black leading-4 text-slate-900">Fix checkout validation</h3>
+                  <p className="mt-2 line-clamp-2 text-[10px] leading-4 text-slate-400">Resolve the checkout validation bug before tomorrow.</p>
+                  <div className="mt-4 flex items-center justify-between">
+                    <span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[8px] font-bold text-slate-500">Slack</span>
+                    <span className="text-[9px] font-bold text-slate-400">Assigned by Aisha</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="h-20 rounded-xl border border-dashed border-slate-200 bg-white/40" />
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
