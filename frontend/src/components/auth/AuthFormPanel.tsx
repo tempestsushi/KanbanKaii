@@ -30,16 +30,16 @@ export function AuthFormPanel({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   return (
-    <section className="flex items-start justify-center p-5 pb-10 sm:items-center sm:p-10">
+    <section className="flex items-start justify-center bg-white/88 p-5 pb-10 backdrop-blur-xl sm:items-center sm:p-10">
       <div className="w-full max-w-sm">
         <div className="mb-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-600">
+          <p className="inline-flex rounded-full border border-violet-100 bg-violet-50 px-3 py-1.5 text-xs font-black uppercase tracking-[0.18em] text-violet-600">
             {isForgot ? 'Account recovery' : isSignup ? 'Create workspace' : 'Welcome back'}
           </p>
-          <h2 className="mt-2 text-2xl font-semibold text-slate-900">
+          <h2 className="mt-4 text-3xl font-black tracking-[-0.04em] text-slate-950">
             {isForgot ? 'Reset your password' : isSignup ? 'Create your account' : 'Sign in to your board'}
           </h2>
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-3 text-sm leading-6 text-slate-500">
             {isForgot
               ? 'Enter your email and we will send you a secure recovery link.'
               : isSignup
@@ -49,7 +49,7 @@ export function AuthFormPanel({
         </div>
 
         {!isForgot && (
-          <div className="mb-6 grid grid-cols-2 rounded-lg bg-slate-100 p-1">
+          <div className="mb-6 grid grid-cols-2 rounded-xl border border-violet-100 bg-violet-50/70 p-1 shadow-inner">
             {(['login', 'signup'] as const).map((item) => (
               <button
                 key={item}
@@ -57,7 +57,7 @@ export function AuthFormPanel({
                 onClick={() => switchMode(item)}
                 className={`rounded-md px-3 py-2 text-sm font-medium transition ${
                   mode === item
-                    ? 'bg-white text-violet-700 shadow-sm'
+                    ? 'bg-white text-violet-700 shadow-sm shadow-violet-100'
                     : 'text-slate-500 hover:text-slate-800'
                 }`}
               >
@@ -77,6 +77,7 @@ export function AuthFormPanel({
                 value={displayName}
                 onChange={(event) => setDisplayName(event.target.value)}
                 placeholder="Aisha Khan"
+                className="h-11 rounded-xl border-violet-200 bg-white/95 px-4 shadow-sm shadow-violet-100/60 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-violet-300"
                 required
                 maxLength={100}
               />
@@ -92,6 +93,7 @@ export function AuthFormPanel({
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               placeholder="you@example.com"
+              className="h-11 rounded-xl border-violet-200 bg-white/95 px-4 shadow-sm shadow-violet-100/60 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-violet-300"
               required
             />
           </div>
@@ -117,7 +119,7 @@ export function AuthFormPanel({
                   autoComplete={isSignup ? 'new-password' : 'current-password'}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  className="pr-10"
+                  className="h-11 rounded-xl border-violet-200 bg-white/95 px-4 pr-11 shadow-sm shadow-violet-100/60 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-violet-300"
                   minLength={6}
                   required
                 />
@@ -143,7 +145,7 @@ export function AuthFormPanel({
                   autoComplete="new-password"
                   value={confirmPassword}
                   onChange={(event) => setConfirmPassword(event.target.value)}
-                  className="pr-10"
+                  className="h-11 rounded-xl border-violet-200 bg-white/95 px-4 pr-11 shadow-sm shadow-violet-100/60 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-violet-300"
                   minLength={6}
                   required
                 />
@@ -170,7 +172,7 @@ export function AuthFormPanel({
             </p>
           )}
 
-          <Button className="w-full" type="submit" disabled={isSubmitting}>
+          <Button className="h-11 w-full rounded-xl bg-violet-600 font-bold shadow-lg shadow-violet-200/70 hover:bg-violet-700" type="submit" disabled={isSubmitting}>
             {isSubmitting
               ? 'Please wait…'
               : isForgot

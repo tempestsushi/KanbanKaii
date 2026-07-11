@@ -164,7 +164,7 @@ export function TopNav({ pageTitle }: TopNavProps) {
   };
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 sm:h-16 sm:px-6">
+    <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-violet-100 bg-gradient-to-r from-white via-violet-50/75 to-white px-3 shadow-sm shadow-violet-100/40 sm:h-16 sm:px-6">
       <div className="min-w-0 flex-1">
         <p className="truncate text-xs font-semibold text-violet-600 sm:text-sm">{pageTitle}</p>
         <p className="hidden text-[11px] text-slate-400 sm:block">AI Ticket Manager</p>
@@ -173,7 +173,7 @@ export function TopNav({ pageTitle }: TopNavProps) {
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
         <BackendStatus />
         <details ref={notificationsMenuRef} className="group relative" onToggle={handleNotificationToggle}>
-          <summary className="relative flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-violet-600 [&::-webkit-details-marker]:hidden">
+          <summary className="relative flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-full text-slate-400 hover:bg-white/80 hover:text-violet-600 [&::-webkit-details-marker]:hidden">
             <Bell className="h-[17px] w-[17px]" />
             {unreadNotifications.length > 0 && (
               <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-rose-500 ring-2 ring-white" />
@@ -232,7 +232,7 @@ export function TopNav({ pageTitle }: TopNavProps) {
         </details>
 
         <details ref={profileMenuRef} className="group relative" onToggle={handleProfileToggle}>
-          <summary className="flex cursor-pointer list-none items-center gap-2 rounded-full p-0.5 sm:pr-2 hover:bg-slate-100 [&::-webkit-details-marker]:hidden">
+          <summary className="flex cursor-pointer list-none items-center gap-2 rounded-full p-0.5 hover:bg-white/80 sm:pr-2 [&::-webkit-details-marker]:hidden">
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 text-white">
               <UserRound className="h-4 w-4" />
             </span>

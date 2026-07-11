@@ -135,27 +135,31 @@ export function LandingPage() {
 
       <section
         id="how-it-works"
-        className="relative z-10 overflow-hidden bg-slate-950 px-5 pb-16 pt-24 text-white sm:px-8 lg:px-10"
+        className="relative z-10 overflow-hidden bg-transparent px-5 pb-16 pt-24 text-slate-950 sm:px-8 lg:px-10"
       >
         <div
-          className="absolute -left-32 top-10 h-72 w-72 rounded-full bg-violet-500/20 blur-3xl"
+          className="landing-grid absolute inset-0 opacity-45"
           aria-hidden="true"
         />
         <div
-          className="absolute right-0 bottom-0 h-80 w-80 rounded-full bg-indigo-500/10 blur-3xl"
+          className="absolute -left-32 top-10 h-96 w-96 rounded-full bg-violet-300/45 blur-3xl"
+          aria-hidden="true"
+        />
+        <div
+          className="absolute right-0 bottom-0 h-96 w-96 rounded-full bg-indigo-200/45 blur-3xl"
           aria-hidden="true"
         />
         <div className="relative z-10 mx-auto max-w-7xl">
           <div className="grid gap-10 lg:grid-cols-[0.7fr_1.3fr] lg:items-end">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-violet-400">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-violet-600">
                 How it works
               </p>
               <h2 className="mt-4 text-4xl font-black tracking-[-0.04em] sm:text-5xl">
                 Less copying. More doing.
               </h2>
             </div>
-            <p className="max-w-2xl text-sm leading-7 text-slate-400 lg:justify-self-end">
+            <p className="max-w-2xl text-sm leading-7 text-slate-500 lg:justify-self-end">
               Keep talking where work happens. KanbanKaii handles the repetitive
               part between a request being made and a useful ticket appearing.
             </p>
@@ -163,17 +167,17 @@ export function LandingPage() {
           <div className="mt-14">
             <KanbanKaiiPipelineMockup />
           </div>
-          <div className="mt-14 grid gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10 md:grid-cols-3 ">
+          <div className="mt-14 grid gap-3 overflow-hidden rounded-[2rem] border border-violet-100 bg-white/55 p-3 shadow-xl shadow-violet-100/40 backdrop-blur-xl md:grid-cols-3">
             {features.map((feature) => (
               <article
                 key={feature.number}
-                className="bg-slate-950 p-7 transition hover:bg-white/[0.04] sm:p-9"
+                className="rounded-[1.5rem] bg-white/78 p-7 shadow-sm shadow-violet-100/50 transition hover:-translate-y-0.5 hover:bg-white sm:p-9"
               >
                 <span className="text-xs font-black text-violet-400">
                   {feature.number}
                 </span>
-                <h3 className="mt-12 text-xl font-bold">{feature.title}</h3>
-                <p className="mt-3 text-sm leading-6 text-slate-400">
+                <h3 className="mt-12 text-xl font-bold text-slate-950">{feature.title}</h3>
+                <p className="mt-3 text-sm leading-6 text-slate-500">
                   {feature.description}
                 </p>
               </article>
@@ -182,25 +186,25 @@ export function LandingPage() {
         </div>
 
         <div
-          className="absolute inset-x-0 -top-24 h-56 bg-gradient-to-b from-slate-950 via-[#120d2a] to-slate-950"
+          className="absolute inset-x-0 top-1/2 h-96 -translate-y-1/2 bg-gradient-to-r from-violet-200/55 via-white/20 to-indigo-100/60"
           aria-hidden="true"
         />
         <div
-          className="absolute left-[-10rem] top-[-2rem] h-[32rem] w-[32rem] rounded-full bg-violet-600/20 blur-[100px]"
+          className="absolute left-[-10rem] top-1/2 h-[32rem] w-[32rem] rounded-full bg-violet-300/35 blur-[100px]"
           aria-hidden="true"
         />
         <div
-          className="absolute right-[-12rem] bottom-[-12rem] h-[34rem] w-[34rem] rounded-full bg-indigo-600/15 blur-[110px]"
+          className="absolute right-[-12rem] bottom-[-12rem] h-[34rem] w-[34rem] rounded-full bg-indigo-200/40 blur-[110px]"
           aria-hidden="true"
         />
         <div
-          className="absolute inset-0 bg-[radial-gradient(circle_at_14%_22%,rgba(124,58,237,0.18),transparent_34%),radial-gradient(circle_at_86%_80%,rgba(79,70,229,0.14),transparent_36%)]"
+          className="absolute inset-0 bg-[radial-gradient(circle_at_14%_52%,rgba(124,58,237,0.18),transparent_34%),radial-gradient(circle_at_86%_80%,rgba(79,70,229,0.14),transparent_36%)]"
           aria-hidden="true"
         />
 
-        <div className="relative z-10 mx-auto mt-24 grid max-w-7xl gap-10 border-t border-white/10 pt-24 lg:grid-cols-[0.75fr_1.25fr] lg:items-center">
+        <div className="relative z-10 mx-auto mt-24 grid max-w-7xl gap-10 border-t border-violet-100 pt-24 lg:grid-cols-[0.75fr_1.25fr] lg:items-center">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-violet-400">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-violet-600">
               Ready when you are
             </p>
             <h2 className="mt-4 max-w-2xl text-5xl font-black leading-[0.98] tracking-[-0.055em] sm:text-6xl">
@@ -208,12 +212,12 @@ export function LandingPage() {
             </h2>
           </div>
           <div className="max-w-2xl lg:justify-self-end">
-            <p className="text-sm leading-7 text-slate-400 sm:text-base sm:leading-8">
+            <p className="text-sm leading-7 text-slate-500 sm:text-base sm:leading-8">
               Connect Slack, keep your conversations natural, and let your
               private board collect the work worth doing.
             </p>
             <a
-              className="mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-bold text-violet-700 shadow-xl shadow-violet-950/30 transition hover:-translate-y-0.5 hover:bg-violet-50"
+              className="mt-8 inline-flex items-center gap-2 rounded-xl bg-violet-600 px-6 py-3.5 text-sm font-bold text-white shadow-xl shadow-violet-200/70 transition hover:-translate-y-0.5 hover:bg-violet-700"
               href={workspaceHref}
             >
               {workspaceLabel}

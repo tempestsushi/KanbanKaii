@@ -144,6 +144,17 @@
   mask-image: linear-gradient(to bottom, black 82%, transparent);
 }
 
+.kanbankaii-app-grid {
+  background:
+    radial-gradient(circle at 12% 16%, rgba(139, 92, 246, .22), transparent 34%),
+    radial-gradient(circle at 88% 20%, rgba(99, 102, 241, .16), transparent 30%),
+    radial-gradient(circle at 52% 86%, rgba(167, 139, 250, .18), transparent 38%),
+    linear-gradient(to right, rgba(109, 83, 170, .075) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(109, 83, 170, .075) 1px, transparent 1px),
+    #f8f7ff;
+  background-size: auto, auto, auto, 56px 56px, 56px 56px, auto;
+}
+
 .landing-message { animation: landing-message-in 7s ease-out infinite; }
 .landing-thinking { animation: landing-thinking-in 7s ease-out infinite; }
 .landing-ticket { animation: landing-ticket-in 7s cubic-bezier(.2, .8, .2, 1) infinite; }

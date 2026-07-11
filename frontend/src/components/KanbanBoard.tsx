@@ -481,7 +481,7 @@ export function KanbanBoard({
           </div>
         )}
         <div className="overflow-x-auto">
-          <div className="grid min-h-[calc(100dvh-11rem)] min-w-[780px] grid-cols-3 divide-x divide-slate-200 bg-slate-100/70 sm:min-h-[calc(100dvh-7.5rem)]">
+          <div className="grid min-h-[calc(100dvh-11rem)] min-w-[780px] grid-cols-3 divide-x divide-slate-200 bg-white sm:min-h-[calc(100dvh-7.5rem)]">
             {TICKET_STATUSES.map((status) => (
               <KanbanColumn
                 key={status}

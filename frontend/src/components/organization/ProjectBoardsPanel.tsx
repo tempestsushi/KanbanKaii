@@ -116,7 +116,7 @@ export function ProjectBoardsPanel({
       </div>
 
       <div className="mt-5 grid gap-5 lg:grid-cols-[260px_1fr]">
-        <div className="rounded-lg border border-slate-100 bg-slate-50/80 p-2">
+        <div className="rounded-lg border border-slate-100 bg-white p-2 shadow-sm">
           {boards.length === 0 ? (
             <p className="p-3 text-xs leading-5 text-slate-500">No project boards yet. Create one for a project, leadership channel, or client workstream.</p>
           ) : (
@@ -126,7 +126,7 @@ export function ProjectBoardsPanel({
                   key={board.id}
                   type="button"
                   onClick={() => onSelectBoard(board.id)}
-                  className={`block w-full rounded-md px-3 py-2 text-left text-xs transition ${selectedBoardId === board.id ? 'bg-white font-semibold text-violet-700 shadow-sm' : 'text-slate-600 hover:bg-white/80'}`}
+                  className={`block w-full rounded-md px-3 py-2 text-left text-xs transition ${selectedBoardId === board.id ? 'bg-violet-50 font-semibold text-violet-700 shadow-sm' : 'text-slate-600 hover:bg-violet-50/60 hover:text-slate-900'}`}
                 >
                   <span className="block truncate">{board.name}</span>
                   <span className="mt-0.5 block truncate text-[10px] font-normal text-slate-400">{board.slug}</span>
@@ -276,7 +276,7 @@ function BoardSlackChannels({
   onRemove: (channel: OrganizationBoardSlackChannel) => void;
 }) {
   return (
-    <div className="rounded-lg border border-slate-100 bg-slate-50/70 p-4">
+    <div className="rounded-lg border border-slate-100 bg-white p-4 shadow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h4 className="text-xs font-semibold text-slate-700">Slack channels connected to this board</h4>

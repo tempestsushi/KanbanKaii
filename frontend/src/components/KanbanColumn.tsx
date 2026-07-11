@@ -1,11 +1,14 @@
-import { useEffect, useState, type UIEvent, type WheelEvent } from 'react';
-import { useDroppable } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { cn } from '@/lib/utils';
-import { TicketCard } from './TicketCard';
-import { TicketCardSkeleton } from './TicketCardSkeleton';
-import type { Ticket, TicketStatus } from '@/types/ticket';
-import Plus from 'lucide-react/dist/esm/icons/plus';
+import { useEffect, useState, type UIEvent, type WheelEvent } from "react";
+import { useDroppable } from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { cn } from "@/lib/utils";
+import { TicketCard } from "./TicketCard";
+import { TicketCardSkeleton } from "./TicketCardSkeleton";
+import type { Ticket, TicketStatus } from "@/types/ticket";
+import Plus from "lucide-react/dist/esm/icons/plus";
 
 const COLUMN_BATCH_SIZE = 3;
 
@@ -21,7 +24,17 @@ interface KanbanColumnProps {
   isLoading?: boolean;
 }
 
-export function KanbanColumn({ id, title, tickets, onEdit, onAdd, canAdd = true, canDragTicket = () => true, boardNames = {}, isLoading = false }: KanbanColumnProps) {
+export function KanbanColumn({
+  id,
+  title,
+  tickets,
+  onEdit,
+  onAdd,
+  canAdd = true,
+  canDragTicket = () => true,
+  boardNames = {},
+  isLoading = false,
+}: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id });
   const [visibleCount, setVisibleCount] = useState(COLUMN_BATCH_SIZE);
   const visibleTickets = tickets.slice(0, visibleCount);
@@ -39,19 +52,23 @@ export function KanbanColumn({ id, title, tickets, onEdit, onAdd, canAdd = true,
 
   const showNextBatch = () => {
     if (hasMoreTickets) {
-      setVisibleCount((count) => Math.min(count + COLUMN_BATCH_SIZE, tickets.length));
+      setVisibleCount((count) =>
+        Math.min(count + COLUMN_BATCH_SIZE, tickets.length),
+      );
     }
   };
 
   const handleScroll = (event: UIEvent<HTMLDivElement>) => {
     const column = event.currentTarget;
-    const distanceFromBottom = column.scrollHeight - column.scrollTop - column.clientHeight;
+    const distanceFromBottom =
+      column.scrollHeight - column.scrollTop - column.clientHeight;
     if (distanceFromBottom < 48) showNextBatch();
   };
 
   const handleWheel = (event: WheelEvent<HTMLDivElement>) => {
     const column = event.currentTarget;
-    const isAtBottom = column.scrollHeight - column.scrollTop - column.clientHeight < 48;
+    const isAtBottom =
+      column.scrollHeight - column.scrollTop - column.clientHeight < 48;
     if (event.deltaY > 0 && isAtBottom) showNextBatch();
   };
 
@@ -61,8 +78,8 @@ export function KanbanColumn({ id, title, tickets, onEdit, onAdd, canAdd = true,
       onScroll={handleScroll}
       onWheel={handleWheel}
       className={cn(
-        'flex h-[calc(100vh-7.5rem)] min-h-[360px] w-full min-w-0 flex-col overflow-y-auto bg-slate-100/60 px-3 py-3 sm:px-4',
-        isOver && 'bg-violet-50 ring-1 ring-inset ring-violet-300'
+        "flex h-[calc(100vh-7.5rem)] min-h-[360px] w-full min-w-0 flex-col overflow-y-auto bg-white px-3 py-3 sm:px-4",
+        isOver && "bg-violet-50/70",
       )}
     >
       <div className="mb-3 flex h-7 items-center justify-between">
@@ -70,7 +87,15 @@ export function KanbanColumn({ id, title, tickets, onEdit, onAdd, canAdd = true,
           <h3 className="text-xs font-semibold text-slate-700">{title}</h3>
           <span className="text-[11px] text-slate-400">{tickets.length}</span>
         </div>
-        {canAdd && <button aria-label={`Add ticket to ${title}`} onClick={() => onAdd(title)} className="rounded p-1 text-slate-400 hover:bg-white hover:text-violet-600"><Plus className="h-3.5 w-3.5" /></button>}
+        {canAdd && (
+          <button
+            aria-label={`Add ticket to ${title}`}
+            onClick={() => onAdd(title)}
+            className="rounded p-1 text-slate-400 hover:bg-white hover:text-violet-600"
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </button>
+        )}
       </div>
 
       <div className="min-h-[240px] flex-1 space-y-2.5">
@@ -81,13 +106,18 @@ export function KanbanColumn({ id, title, tickets, onEdit, onAdd, canAdd = true,
             ))}
           </div>
         ) : (
-          <SortableContext items={visibleTickets.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+          <SortableContext
+            items={visibleTickets.map((t) => t.id)}
+            strategy={verticalListSortingStrategy}
+          >
             {visibleTickets.map((ticket) => (
               <TicketCard
                 key={ticket.id}
                 ticket={ticket}
                 onEdit={onEdit}
-                boardName={ticket.boardId ? boardNames[ticket.boardId] : undefined}
+                boardName={
+                  ticket.boardId ? boardNames[ticket.boardId] : undefined
+                }
                 draggable={canDragTicket(ticket)}
               />
             ))}
