@@ -14,6 +14,27 @@ powershell -ExecutionPolicy Bypass -File .\scripts\start-local-server.ps1 -UseNg
 Keep the opened FastAPI, ARQ, and ngrok windows running while the deployed app
 needs backend access.
 
+## Deployed frontend: start local backend with Gemini, no Ollama
+
+Use this when `backend\.env` contains:
+
+```env
+AI_MODEL_PROVIDER=gemini
+GEMINI_API_KEY=your_key_here
+GEMINI_MODEL=gemini-3.1-flash-lite
+```
+
+From the project root, this starts/checks Redis, FastAPI, the ARQ worker, and
+ngrok, but skips Ollama completely:
+
+```powershell
+cd D:\kanbanticket
+powershell -ExecutionPolicy Bypass -File .\scripts\start-local-server.ps1 -UseNgrok -SkipOllama
+```
+
+Keep the opened FastAPI, ARQ, and ngrok windows running while the deployed app
+needs backend access.
+
 ## Stop the complete local backend
 
 Run this in PowerShell from any folder:
@@ -23,8 +44,8 @@ $backend = Get-NetTCPConnection -LocalPort 8000 -State Listen -ErrorAction Silen
 ```
 
 This stops FastAPI, the ARQ worker, ngrok, the Redis container, and unloads the
-Ollama model. The Vercel frontend remains online, but its backend-dependent
-features will be unavailable.
+Ollama model if it was being used. The Vercel frontend remains online, but its
+backend-dependent features will be unavailable.
 
 ## Run FastAPI only
 
@@ -119,7 +140,7 @@ Keep the ngrok window open while testing Slack.
 
 ## Start the Slack queue worker
 
-Open another CMD window. The worker processes one Ollama job at a time:
+Open another CMD window. The worker processes one AI triage job at a time:
 
 ```cmd
 cd backend
@@ -127,7 +148,8 @@ venv\Scripts\activate
 arq app.workers.slack_worker.WorkerSettings
 ```
 
-Redis and Ollama must already be running before starting the worker.
+Redis must already be running before starting the worker. Ollama is only needed
+when `AI_MODEL_PROVIDER=ollama`; it is not needed when `AI_MODEL_PROVIDER=gemini`.
 
 Current public ngrok base URL:
 
@@ -212,7 +234,7 @@ npm run build
 
 ## Normal startup order
 
-1. Start Ollama.
+1. Start Ollama only if `AI_MODEL_PROVIDER=ollama`; skip it for Gemini.
 2. Start the FastAPI backend on port `8000`.
 3. Start the React frontend on port `5173`.
 4. Start the ARQ Slack worker.

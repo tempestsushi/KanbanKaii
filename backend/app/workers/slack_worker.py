@@ -57,7 +57,7 @@ class WorkerSettings:
     ]
     on_startup = startup
     redis_settings = get_arq_redis_settings()
-    max_jobs = 1
+    max_jobs = 3
     max_tries = 3
     job_timeout = 180
     keep_result = 3600

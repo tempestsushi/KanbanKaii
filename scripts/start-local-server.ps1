@@ -4,7 +4,8 @@ param(
     [switch]$UseNgrok,
     [string]$NgrokPath = "C:\ngrok\ngrok.exe",
     [string]$RedisContainer = "kanbankaii-redis",
-    [string]$OllamaModel = "llama3.2:3b"
+    [string]$OllamaModel = "llama3.2:3b",
+    [switch]$SkipOllama
 )
 
 $ErrorActionPreference = "Stop"
@@ -81,20 +82,26 @@ if ($pong -ne "PONG") {
 }
 Write-Host "Redis is ready." -ForegroundColor Green
 
-Write-Step "Checking Ollama and model"
-$Ollama = Get-Command ollama -ErrorAction SilentlyContinue
-if (-not $Ollama) {
-    throw "Ollama was not found in PATH. Install it or add ollama.exe to PATH."
+if ($SkipOllama) {
+    Write-Step "Skipping Ollama"
+    Write-Host "Ollama checks were skipped. Ensure AI_MODEL_PROVIDER is set to a hosted provider such as gemini." -ForegroundColor Yellow
 }
-if (-not (Test-HttpEndpoint "http://127.0.0.1:11434/api/tags")) {
-    Start-Process $Ollama.Source -ArgumentList "serve" -WindowStyle Hidden | Out-Null
-    Wait-ForEndpoint "http://127.0.0.1:11434/api/tags" "Ollama"
+else {
+    Write-Step "Checking Ollama and model"
+    $Ollama = Get-Command ollama -ErrorAction SilentlyContinue
+    if (-not $Ollama) {
+        throw "Ollama was not found in PATH. Install it or add ollama.exe to PATH."
+    }
+    if (-not (Test-HttpEndpoint "http://127.0.0.1:11434/api/tags")) {
+        Start-Process $Ollama.Source -ArgumentList "serve" -WindowStyle Hidden | Out-Null
+        Wait-ForEndpoint "http://127.0.0.1:11434/api/tags" "Ollama"
+    }
+    $modelInstalled = (& $Ollama.Source list) -match [regex]::Escape($OllamaModel)
+    if (-not $modelInstalled) {
+        throw "Ollama model '$OllamaModel' is missing. Run: ollama pull $OllamaModel"
+    }
+    Write-Host "Ollama model $OllamaModel is ready." -ForegroundColor Green
 }
-$modelInstalled = (& $Ollama.Source list) -match [regex]::Escape($OllamaModel)
-if (-not $modelInstalled) {
-    throw "Ollama model '$OllamaModel' is missing. Run: ollama pull $OllamaModel"
-}
-Write-Host "Ollama model $OllamaModel is ready." -ForegroundColor Green
 
 Write-Step "Starting FastAPI"
 if (Test-HttpEndpoint "http://127.0.0.1:8000/health") {
