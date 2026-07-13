@@ -17,6 +17,50 @@ from app.services.triage_rules import deterministic_non_actionable
 logger = get_application_logger("gemini")
 
 
+GEMINI_TRIAGE_RESPONSE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "isActionableTask": {"type": "boolean"},
+        "extractedTitle": {"type": "string"},
+        "cleanDescription": {"type": "string"},
+        "estimatedPriority": {
+            "type": "string",
+            "enum": ["HIGH", "MEDIUM", "LOW"],
+        },
+    },
+    "required": [
+        "isActionableTask",
+        "extractedTitle",
+        "cleanDescription",
+        "estimatedPriority",
+    ],
+}
+
+
+GEMINI_TASK_BATCH_RESPONSE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "isActionableTask": {"type": "boolean"},
+        "tasks": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "title": {"type": "string"},
+                    "description": {"type": "string"},
+                    "priority": {
+                        "type": "string",
+                        "enum": ["HIGH", "MEDIUM", "LOW"],
+                    },
+                },
+                "required": ["title", "description", "priority"],
+            },
+        },
+    },
+    "required": ["isActionableTask", "tasks"],
+}
+
+
 class GeminiService:
     def __init__(
         self,
@@ -121,7 +165,7 @@ class GeminiService:
             "temperature": 0.0,
             "max_output_tokens": max_output_tokens,
             "response_mime_type": "application/json",
-            "response_schema": response_type,
+            "response_schema": self._response_schema(response_type),
         }
 
         thinking_config = getattr(types, "ThinkingConfig", None)
@@ -129,6 +173,16 @@ class GeminiService:
             kwargs["thinking_config"] = thinking_config(thinking_budget=0)
 
         return types.GenerateContentConfig(**kwargs)
+
+    @staticmethod
+    def _response_schema(
+        response_type: type[AIAnalysisResult] | type[AITaskBatchResult],
+    ) -> dict[str, Any]:
+        if response_type is AIAnalysisResult:
+            return GEMINI_TRIAGE_RESPONSE_SCHEMA
+        if response_type is AITaskBatchResult:
+            return GEMINI_TASK_BATCH_RESPONSE_SCHEMA
+        raise AIModelServiceError("Unsupported Gemini response schema")
 
     @staticmethod
     def _is_truncated(response: Any) -> bool:
