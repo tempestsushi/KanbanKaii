@@ -10,23 +10,23 @@ from app.database.ticket_repository import (
 )
 from app.schemas.ticket import TriageResponse
 from app.schemas.triage import TriageRequest
-from app.services.ollama_service import (
-    OllamaConfigurationError,
-    OllamaService,
-    OllamaServiceError,
-    OllamaUnavailableError,
-    get_ollama_service,
+from app.services.ai_provider import (
+    AIModelConfigurationError,
+    AIModelService,
+    AIModelServiceError,
+    AIModelUnavailableError,
 )
+from app.services.model_service import get_ai_model_service
 from app.services.ticket_factory import create_ticket_from_analysis
 
 
 router = APIRouter(prefix="/api/webhook", tags=["triage"])
 
 
-def get_configured_ollama_service() -> OllamaService:
+def get_configured_ollama_service() -> AIModelService:
     try:
-        return get_ollama_service()
-    except OllamaConfigurationError as error:
+        return get_ai_model_service()
+    except AIModelConfigurationError as error:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=str(error),
@@ -48,7 +48,7 @@ async def triage_message(
     message: TriageRequest,
     response: Response,
     ollama_service: Annotated[
-        OllamaService,
+        AIModelService,
         Depends(get_configured_ollama_service),
     ],
     ticket_repository: Annotated[
@@ -74,12 +74,12 @@ async def triage_message(
             analysis=analysis,
             ticket=ticket,
         )
-    except OllamaUnavailableError as error:
+    except AIModelUnavailableError as error:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=str(error),
         ) from error
-    except OllamaServiceError as error:
+    except AIModelServiceError as error:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=str(error),

@@ -12,7 +12,7 @@ from app.integrations.slack.processing.queued_processor import SlackQueuedEventH
 from app.integrations.slack.data.repository import SlackRepository
 from app.integrations.slack.services.users import SlackUserService
 from app.redis.client import get_arq_redis_settings
-from app.services.ollama_service import get_ollama_service
+from app.services.model_service import get_ai_model_service
 from app.maintenance.cleanup import IntegrationCleanupService
 
 
@@ -24,7 +24,7 @@ async def startup(ctx: dict[str, Any]) -> None:
     processor = SlackEventProcessor(
         slack_repository=repository,
         ticket_repository=TicketRepository(repository.client),
-        ollama_service=get_ollama_service(),
+        ollama_service=get_ai_model_service(),
         slack_user_service=SlackUserService(
             repository,
             TokenCipher(settings.encryption_key),

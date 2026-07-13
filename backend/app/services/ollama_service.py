@@ -7,6 +7,11 @@ from pydantic import ValidationError
 from app.core.config import get_ollama_host, get_ollama_model
 from app.prompts.triage import SLACK_MULTI_TASK_PROMPT, TRIAGE_SYSTEM_PROMPT
 from app.schemas.triage import AIAnalysisResult, AITaskBatchResult, IncomingMessage
+from app.services.ai_provider import (
+    AIModelConfigurationError,
+    AIModelServiceError,
+    AIModelUnavailableError,
+)
 from app.services.triage_rules import deterministic_non_actionable
 from app.core.logging import get_application_logger
 
@@ -37,15 +42,15 @@ SLACK_TASK_RESPONSE_SCHEMA = {
 }
 
 
-class OllamaConfigurationError(RuntimeError):
+class OllamaConfigurationError(AIModelConfigurationError):
     """Raised when local Ollama configuration is invalid."""
 
 
-class OllamaUnavailableError(RuntimeError):
+class OllamaUnavailableError(AIModelUnavailableError):
     """Raised when the local Ollama server cannot be reached."""
 
 
-class OllamaServiceError(RuntimeError):
+class OllamaServiceError(AIModelServiceError):
     """Raised when Ollama fails or returns invalid structured data."""
 
 

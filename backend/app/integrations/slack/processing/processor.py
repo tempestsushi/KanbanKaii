@@ -11,7 +11,7 @@ from app.integrations.slack.data.repository import (
 from app.integrations.slack.schemas import SlackEvent
 from app.integrations.slack.services.users import SlackUserService
 from app.schemas.triage import AIAnalysisResult, IncomingMessage
-from app.services.ollama_service import OllamaService
+from app.services.ai_provider import AIModelService
 from app.services.ticket_factory import create_ticket_from_analysis
 
 
@@ -33,7 +33,7 @@ class SlackEventProcessor:
         self,
         slack_repository: SlackRepository,
         ticket_repository: TicketRepository,
-        ollama_service: OllamaService,
+        ollama_service: AIModelService,
         slack_user_service: SlackUserService | None = None,
     ) -> None:
         self.slack_repository = slack_repository
