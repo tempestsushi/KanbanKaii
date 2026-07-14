@@ -2,6 +2,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
 import type { Ticket } from '@/types/ticket';
+import type { CSSProperties } from 'react';
 import Github from 'lucide-react/dist/esm/icons/github';
 import MessageSquare from 'lucide-react/dist/esm/icons/message-square';
 import UserRound from 'lucide-react/dist/esm/icons/user-round';
@@ -39,10 +40,13 @@ export function TicketCard({ ticket, onEdit, boardName, overlay = false, draggab
     isDragging,
   } = useSortable({ id: ticket.id, disabled: overlay || !draggable });
 
-  const style = {
+  const style: CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
     touchAction: draggable ? 'none' : 'auto',
+    userSelect: 'none',
+    WebkitUserSelect: 'none',
+    WebkitTouchCallout: 'none',
   };
 
   const priority = priorityConfig[ticket.priority];
@@ -58,8 +62,11 @@ export function TicketCard({ ticket, onEdit, boardName, overlay = false, draggab
       {...(draggable ? attributes : {})}
       {...(draggable ? listeners : {})}
       onClick={() => onEdit(ticket)}
+      onContextMenu={(event) => {
+        if (draggable) event.preventDefault();
+      }}
       className={cn(
-        'group relative cursor-pointer rounded border border-slate-200 bg-white p-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-md',
+        'group relative cursor-pointer select-none rounded border border-slate-200 bg-white p-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-md',
         draggable && 'cursor-grab active:cursor-grabbing',
         isDragging && 'opacity-50 rotate-2 shadow-xl ring-2 ring-primary/20'
       )}

@@ -2,7 +2,8 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   KeyboardSensor,
   closestCorners,
   useSensor,
@@ -207,6 +208,24 @@ export function KanbanBoard({
   }, [tickets]);
 
   useEffect(() => {
+    if (!activeId) return undefined;
+
+    const previousUserSelect = document.body.style.userSelect;
+    const previousWebkitUserSelect = document.body.style.webkitUserSelect;
+    const previousOverscrollBehavior = document.body.style.overscrollBehavior;
+
+    document.body.style.userSelect = 'none';
+    document.body.style.webkitUserSelect = 'none';
+    document.body.style.overscrollBehavior = 'contain';
+
+    return () => {
+      document.body.style.userSelect = previousUserSelect;
+      document.body.style.webkitUserSelect = previousWebkitUserSelect;
+      document.body.style.overscrollBehavior = previousOverscrollBehavior;
+    };
+  }, [activeId]);
+
+  useEffect(() => {
     if (!user || skipLoad) return undefined;
 
     const supabase = getSupabaseClient();
@@ -266,7 +285,8 @@ export function KanbanBoard({
   }, [isOrganizationBoard, notificationSettings.newTickets, notificationSettings.statusChanges, organizationId, skipLoad, user]);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 140, tolerance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
@@ -368,13 +388,13 @@ export function KanbanBoard({
 
   return (
     <>
-      <div className="flex min-h-14 flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 py-2.5 sm:flex-nowrap sm:gap-3 sm:px-6">
+      <div className="flex min-h-14 items-center gap-2 border-b border-slate-200 bg-white px-3 py-2.5 sm:gap-3 sm:px-6">
         {toolbarContext && (
-          <div className="order-1 min-w-0 flex-1 basis-0">
+          <div className="min-w-0 shrink">
             {toolbarContext}
           </div>
         )}
-        <div className="order-3 flex min-w-0 basis-full items-center gap-2 sm:order-2 sm:basis-auto">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
           <button
             type="button"
             aria-label="Search tickets"
@@ -398,7 +418,7 @@ export function KanbanBoard({
             </label>
           )}
         </div>
-        <div ref={controlsRef} className="order-2 relative ml-auto flex w-auto shrink-0 items-center justify-end gap-1 sm:order-3 sm:gap-2">
+        <div ref={controlsRef} className="relative ml-auto flex w-auto shrink-0 items-center justify-end gap-1 sm:gap-2">
           {canCreate && <button type="button" onClick={() => openCreator('Pending')} className="flex items-center gap-1.5 rounded border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-medium text-slate-700 shadow-sm hover:border-violet-300 hover:text-violet-600">
             <Plus className="h-3.5 w-3.5" /><span className="hidden sm:inline">New ticket</span>
           </button>}
