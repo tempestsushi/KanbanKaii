@@ -81,32 +81,53 @@ export function SlackIntegrationCard() {
     }
   }, [hasCachedStatus]);
 
+  const resetConnecting = useCallback(() => {
+    setIsConnecting(false);
+  }, []);
+
   useEffect(() => {
     const query = new URLSearchParams(window.location.search);
     const result = query.get('slack');
     if (result === 'connected') {
       toast.success('Slack workspace connected');
+      resetConnecting();
     } else if (result === 'error') {
       toast.error(`Slack connection failed: ${query.get('reason') ?? 'unknown error'}`);
+      resetConnecting();
     }
     if (result) {
       window.history.replaceState({}, '', window.location.pathname);
     }
     void loadStatus(!cachedStatus);
-  }, [cachedStatus, loadStatus]);
+  }, [cachedStatus, loadStatus, resetConnecting]);
 
   useEffect(() => {
-    const handlePageShow = (event: PageTransitionEvent) => {
+    if (!isConnecting) return undefined;
+
+    const resetWhenReturned = () => {
+      if (document.visibilityState === 'visible') {
+        resetConnecting();
+        void loadStatus(false);
+      }
+    };
+    const handlePageShow = () => {
       // Pressing Back after abandoning Slack OAuth can restore this page from
       // the browser cache with its old `isConnecting` state still intact.
-      if (!event.persisted) return;
-      setIsConnecting(false);
+      resetConnecting();
       void loadStatus(false);
     };
+    const timeoutId = window.setTimeout(resetConnecting, 90_000);
 
+    window.addEventListener('focus', handlePageShow);
     window.addEventListener('pageshow', handlePageShow);
-    return () => window.removeEventListener('pageshow', handlePageShow);
-  }, [loadStatus]);
+    document.addEventListener('visibilitychange', resetWhenReturned);
+    return () => {
+      window.clearTimeout(timeoutId);
+      window.removeEventListener('focus', handlePageShow);
+      window.removeEventListener('pageshow', handlePageShow);
+      document.removeEventListener('visibilitychange', resetWhenReturned);
+    };
+  }, [isConnecting, loadStatus, resetConnecting]);
 
   const connect = async () => {
     if (isConnecting) return;

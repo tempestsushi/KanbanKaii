@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import type { Organization } from '@/api/organizations';
 import {
@@ -25,19 +25,45 @@ export function useOrganizationSlackConnection({
   const [latestSlackChannelRefresh, setLatestSlackChannelRefresh] =
     useState<SlackChannelRefreshResponse | null>(null);
 
+  const resetConnectingSlack = useCallback(() => {
+    setIsConnectingSlack(false);
+  }, []);
+
   useEffect(() => {
     const query = new URLSearchParams(window.location.search);
     const result = query.get('slack');
     if (result === 'organization_connected') {
       toast.success('Slack workspace verified and connected to the organization');
+      resetConnectingSlack();
     } else if (result === 'error') {
       const reason = query.get('reason');
       toast.error(reason === 'workspace_owner_required'
         ? 'Slack connection requires a Slack workspace owner account'
         : `Slack connection failed: ${reason ?? 'unknown error'}`);
+      resetConnectingSlack();
     }
     if (result) window.history.replaceState({}, '', window.location.pathname);
-  }, []);
+  }, [resetConnectingSlack]);
+
+  useEffect(() => {
+    if (!isConnectingSlack) return undefined;
+
+    const resetWhenReturned = () => {
+      if (document.visibilityState === 'visible') resetConnectingSlack();
+    };
+    const timeoutId = window.setTimeout(resetConnectingSlack, 90_000);
+
+    window.addEventListener('focus', resetConnectingSlack);
+    window.addEventListener('pageshow', resetConnectingSlack);
+    document.addEventListener('visibilitychange', resetWhenReturned);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      window.removeEventListener('focus', resetConnectingSlack);
+      window.removeEventListener('pageshow', resetConnectingSlack);
+      document.removeEventListener('visibilitychange', resetWhenReturned);
+    };
+  }, [isConnectingSlack, resetConnectingSlack]);
 
   const connectOrganizationSlack = async () => {
     if (!organization || !isOwner || isConnectingSlack) return;

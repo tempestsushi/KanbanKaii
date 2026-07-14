@@ -1,0 +1,60 @@
+{
+  "name": "KanbanKaii — AI Ticket Manager",
+  "short_name": "KanbanKaii",
+  "description": "Turn actionable Slack conversations into organized Kanban tickets with AI.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f8f7ff",
+  "theme_color": "#7c3aed",
+  "categories": ["productivity", "business", "utilities"],
+  "icons": [
+    {
+      "src": "/kanbankaii-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/kanbankaii-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/kanbankaii-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/kanbankaii-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/kanbankaii-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "My Tasks",
+      "short_name": "Tasks",
+      "description": "Open your personal Kanban board.",
+      "url": "/dashboard",
+      "icons": [{ "src": "/kanbankaii-icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Organization Board",
+      "short_name": "Org Board",
+      "description": "Open shared organization tasks.",
+      "url": "/organization-board",
+      "icons": [{ "src": "/kanbankaii-icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ]
+}
