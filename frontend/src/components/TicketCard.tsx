@@ -50,6 +50,10 @@ export function TicketCard({ ticket, onEdit, boardName, overlay = false, draggab
   const SourceIcon = ticket.source === 'GitHub' ? Github : MessageSquare;
   const isAssignedTicket = ticket.scope !== 'PRIVATE';
   const requesterName = ticket.requestedByName;
+  const slackChannelLabel =
+    ticket.source === 'Slack' && ticket.sourceChannelId
+      ? `# ${ticket.sourceChannelId}`
+      : null;
 
   return (
     <div
@@ -95,6 +99,12 @@ export function TicketCard({ ticket, onEdit, boardName, overlay = false, draggab
         <span className="inline-flex items-center gap-1 rounded-sm border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[9px] font-medium text-slate-500">
           <SourceIcon className="h-3 w-3" /> {ticket.source}
         </span>
+
+        {slackChannelLabel && (
+          <span className="inline-flex max-w-[140px] items-center truncate rounded-sm border border-slate-200 bg-white px-1.5 py-0.5 text-[9px] font-medium text-slate-500">
+            {slackChannelLabel}
+          </span>
+        )}
 
         {boardName && (
           <span className="inline-flex items-center rounded-sm border border-violet-200 bg-violet-50 px-1.5 py-0.5 text-[9px] font-semibold text-violet-700">

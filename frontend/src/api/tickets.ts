@@ -27,6 +27,9 @@ export interface ApiTicket {
   assignee: string;
   source: string;
   requested_by_name: string | null;
+  source_team_id: string | null;
+  source_channel_id: string | null;
+  source_message_ts: string | null;
   source_message_state: 'ACTIVE' | 'DELETED';
   source_message_deleted_at: string | null;
   created_at: string;
@@ -80,6 +83,9 @@ export function mapApiTicket(ticket: ApiTicket): Ticket {
     assignedByUserId: ticket.assigned_by_user_id ?? undefined,
     assigneeUserId: ticket.assignee_user_id ?? undefined,
     requestedByName: ticket.requested_by_name ?? undefined,
+    sourceTeamId: ticket.source_team_id ?? undefined,
+    sourceChannelId: ticket.source_channel_id ?? undefined,
+    sourceMessageTs: ticket.source_message_ts ?? undefined,
     sourceMessageState: ticket.source_message_state,
     sourceMessageDeletedAt: ticket.source_message_deleted_at ?? undefined,
     createdAt: ticket.created_at,
