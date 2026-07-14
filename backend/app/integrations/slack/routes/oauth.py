@@ -8,8 +8,10 @@ from fastapi.responses import RedirectResponse
 from app.auth.dependencies import get_current_user_id
 from app.database.supabase_client import SupabaseConfigurationError, get_supabase_admin_client
 from app.integrations.slack.config import SlackConfigurationError, get_slack_oauth_settings
-from app.integrations.slack.security.encryption import TokenCipher
+from app.integrations.slack.security.encryption import TokenCipher, TokenEncryptionError
 from app.integrations.slack.services.connection import SlackConnectionError, SlackConnectionService
+from app.integrations.slack.services.cache import SlackCacheInvalidator
+from app.integrations.slack.services.channels import SlackChannelService
 from app.integrations.slack.services.oauth import (
     SlackOAuthError,
     SlackOAuthService,
@@ -26,6 +28,7 @@ from app.integrations.slack.data.repository import (
 )
 from app.integrations.slack.schemas import (
     OrganizationSlackBindingStatus,
+    SlackChannelRefreshResponse,
     SlackConnectionStatus,
     SlackConnectResponse,
 )
@@ -81,6 +84,27 @@ def get_slack_connection_service(
         raise HTTPException(status_code=503, detail=str(error)) from error
 
 
+def get_slack_channel_service(
+    repository: Annotated[SlackRepository, Depends(get_slack_repository)],
+) -> SlackChannelService:
+    try:
+        settings = get_slack_oauth_settings()
+        return SlackChannelService(
+            repository,
+            TokenCipher(settings.encryption_key),
+            redis=get_redis_client(),
+        )
+    except (SlackConfigurationError, RedisConfigurationError) as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
+
+
+def get_slack_cache_invalidator() -> SlackCacheInvalidator:
+    try:
+        return SlackCacheInvalidator(get_redis_client())
+    except RedisConfigurationError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
+
+
 def callback_redirect(
     result: str,
     detail: str | None = None,
@@ -123,6 +147,10 @@ async def connect_slack(
 @router.get("/callback")
 async def slack_callback(
     oauth_service: Annotated[SlackOAuthService, Depends(get_slack_oauth_service)],
+    cache_invalidator: Annotated[
+        SlackCacheInvalidator,
+        Depends(get_slack_cache_invalidator),
+    ],
     code: Annotated[str | None, Query()] = None,
     state_value: Annotated[str | None, Query(alias="state")] = None,
     oauth_error: Annotated[str | None, Query(alias="error")] = None,
@@ -134,6 +162,10 @@ async def slack_callback(
 
     try:
         completion = await oauth_service.complete_installation(code, state_value)
+        if completion.organization_id is not None:
+            await cache_invalidator.invalidate_organization(
+                str(completion.organization_id)
+            )
         return callback_redirect(
             "organization_connected" if completion.organization_id else "connected",
             organization=completion.organization_id is not None,
@@ -167,6 +199,37 @@ async def organization_slack_status(
         if not repository.is_organization_member(user_id, organization_id):
             raise HTTPException(status_code=403, detail="Organization membership required")
         return repository.get_organization_binding(organization_id)
+    except SlackRepositoryError as error:
+        raise HTTPException(status_code=502, detail=str(error)) from error
+
+
+@router.post(
+    "/organizations/{organization_id}/channels/refresh",
+    response_model=SlackChannelRefreshResponse,
+)
+async def refresh_organization_slack_channels(
+    organization_id: UUID,
+    user_id: Annotated[UUID, Depends(get_current_user_id)],
+    repository: Annotated[SlackRepository, Depends(get_slack_repository)],
+    channel_service: Annotated[
+        SlackChannelService,
+        Depends(get_slack_channel_service),
+    ],
+    cache_invalidator: Annotated[
+        SlackCacheInvalidator,
+        Depends(get_slack_cache_invalidator),
+    ],
+) -> SlackChannelRefreshResponse:
+    try:
+        if not repository.is_organization_member(user_id, organization_id):
+            raise HTTPException(status_code=403, detail="Organization membership required")
+        await cache_invalidator.invalidate_organization(str(organization_id))
+        return await channel_service.refresh_organization_channels(organization_id)
+    except TokenEncryptionError as error:
+        raise HTTPException(
+            status_code=409,
+            detail="Slack token cannot be read. Reconnect Slack once.",
+        ) from error
     except SlackRepositoryError as error:
         raise HTTPException(status_code=502, detail=str(error)) from error
 

@@ -92,6 +92,7 @@ class SlackEventProcessor:
             if self.slack_channel_service is not None:
                 source_channel_name = await self.slack_channel_service.display_name(
                     targets[0].owner_id,
+                    team_id,
                     event.channel,
                     event.channel_type,
                 )
@@ -154,6 +155,14 @@ class SlackEventProcessor:
                             team_id,
                             event.channel,
                         )
+                        if board_binding is None and event.channel:
+                            logger.warning(
+                                "Slack organization ticket has no project board channel mapping event_id=%s organization_id=%s team_id=%s channel_id=%s; ticket will stay organization-wide",
+                                event_id,
+                                organization_context.organization_id,
+                                team_id,
+                                event.channel,
+                            )
 
                     for extracted in batch.tasks:
                         analysis = AIAnalysisResult(

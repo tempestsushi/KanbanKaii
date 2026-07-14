@@ -21,6 +21,7 @@ from app.integrations.slack.services.oauth import (
 )
 from app.integrations.slack.services.oauth_state import SlackOAuthContext
 from app.integrations.slack.routes.oauth import (
+    get_slack_cache_invalidator,
     get_slack_oauth_service,
     get_slack_repository,
     get_slack_connection_service,
@@ -151,6 +152,14 @@ class FakeSlackConnectionService:
 
     async def disconnect(self, owner_id):
         self.disconnected_owner_id = owner_id
+
+
+class FakeSlackCacheInvalidator:
+    def __init__(self) -> None:
+        self.invalidated_organization_id = None
+
+    async def invalidate_organization(self, organization_id: str) -> None:
+        self.invalidated_organization_id = organization_id
 
 
 class SlackIntegrationTests(TestCase):
@@ -292,6 +301,7 @@ class SlackIntegrationTests(TestCase):
     def test_callback_completes_installation_and_redirects(self) -> None:
         service = FakeSlackOAuthService()
         app.dependency_overrides[get_slack_oauth_service] = lambda: service
+        app.dependency_overrides[get_slack_cache_invalidator] = lambda: FakeSlackCacheInvalidator()
         environment = {
             "SLACK_CLIENT_ID": "123.456",
             "SLACK_CLIENT_SECRET": "client-secret",

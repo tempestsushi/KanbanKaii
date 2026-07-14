@@ -51,6 +51,18 @@ export interface OrganizationSlackBindingStatus {
   workspace_name: string | null;
   slack_team_id: string | null;
   verified_at: string | null;
+  reconnect_required?: boolean;
+  reconnect_reason?: string | null;
+}
+
+export interface SlackChannelRefreshResponse {
+  channels_checked: number;
+  channels_updated: number;
+  channels_joined: number;
+  manual_invites_required: string[];
+  reconnect_required: boolean;
+  missing_scopes: string[];
+  message: string;
 }
 
 export async function getOrganizationSlackStatus(
@@ -67,6 +79,25 @@ export async function getOrganizationSlackStatus(
     throw new Error(body?.detail ?? `Could not load organization Slack status (${response.status})`);
   }
   return response.json() as Promise<OrganizationSlackBindingStatus>;
+}
+
+export async function refreshOrganizationSlackChannels(
+  organizationId: string,
+): Promise<SlackChannelRefreshResponse> {
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+  if (!apiBaseUrl) throw new Error('Frontend API configuration is missing');
+  const response = await fetch(
+    new URL(`/api/integrations/slack/organizations/${organizationId}/channels/refresh`, apiBaseUrl),
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${await authToken()}`, ...ngrokHeaders },
+    },
+  );
+  if (!response.ok) {
+    const body = await response.json().catch(() => null) as { detail?: string } | null;
+    throw new Error(body?.detail ?? `Could not refresh Slack channels (${response.status})`);
+  }
+  return response.json() as Promise<SlackChannelRefreshResponse>;
 }
 
 export async function getSlackConnectionStatus(): Promise<SlackConnectionStatus> {

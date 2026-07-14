@@ -54,7 +54,9 @@ export function OrganizationPage() {
           slackBinding={page.slackBinding}
           isOwner={page.isOwner}
           isConnectingSlack={page.isConnectingSlack}
+          isRefreshingSlackChannels={page.isRefreshingSlackChannels}
           onConnectSlack={page.connectOrganizationSlack}
+          onRefreshSlackChannels={page.refreshSlackChannels}
         />
 
         <ProjectBoardsPanel

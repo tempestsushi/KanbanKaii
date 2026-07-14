@@ -5,14 +5,18 @@ interface OrganizationSlackWorkspacePanelProps {
   slackBinding: OrganizationSlackBindingStatus;
   isOwner: boolean;
   isConnectingSlack: boolean;
+  isRefreshingSlackChannels: boolean;
   onConnectSlack: () => void;
+  onRefreshSlackChannels: () => void;
 }
 
 export function OrganizationSlackWorkspacePanel({
   slackBinding,
   isOwner,
   isConnectingSlack,
+  isRefreshingSlackChannels,
   onConnectSlack,
+  onRefreshSlackChannels,
 }: OrganizationSlackWorkspacePanelProps) {
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -29,14 +33,31 @@ export function OrganizationSlackWorkspacePanel({
               ? `${slackBinding.workspace_name} · ${slackBinding.slack_team_id}`
               : 'Bind the formal organization board to one verified Slack workspace.'}
           </p>
+          {slackBinding.reconnect_required && (
+            <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-medium text-amber-700">
+              {slackBinding.reconnect_reason ?? 'Slack permissions changed. Reconnect Slack once.'}
+            </p>
+          )}
           {!isOwner && !slackBinding.connected && (
             <p className="mt-1 text-[11px] text-slate-400">Only the organization owner can establish this connection.</p>
           )}
         </div>
         {isOwner && (
-          <Button type="button" variant="outline" disabled={isConnectingSlack} onClick={onConnectSlack}>
-            {isConnectingSlack ? 'Opening Slack…' : slackBinding.connected ? 'Reverify workspace' : 'Connect workspace'}
-          </Button>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            {slackBinding.connected && (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isRefreshingSlackChannels || isConnectingSlack}
+                onClick={onRefreshSlackChannels}
+              >
+                {isRefreshingSlackChannels ? 'Refreshing…' : 'Refresh channels'}
+              </Button>
+            )}
+            <Button type="button" variant="outline" disabled={isConnectingSlack} onClick={onConnectSlack}>
+              {isConnectingSlack ? 'Opening Slack…' : slackBinding.connected ? 'Reconnect Slack' : 'Connect workspace'}
+            </Button>
+          </div>
         )}
       </div>
     </section>

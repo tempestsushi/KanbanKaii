@@ -12,7 +12,7 @@ from app.integrations.slack.processing.queued_processor import SlackQueuedEventH
 from app.integrations.slack.data.repository import SlackRepository
 from app.integrations.slack.services.channels import SlackChannelService
 from app.integrations.slack.services.users import SlackUserService
-from app.redis.client import get_arq_redis_settings
+from app.redis.client import get_arq_redis_settings, get_redis_client
 from app.services.model_service import get_ai_model_service
 from app.maintenance.cleanup import IntegrationCleanupService
 
@@ -33,6 +33,7 @@ async def startup(ctx: dict[str, Any]) -> None:
         slack_channel_service=SlackChannelService(
             repository,
             TokenCipher(settings.encryption_key),
+            redis=get_redis_client(),
         ),
     )
     ctx["slack_handler"] = SlackQueuedEventHandler(repository, processor)

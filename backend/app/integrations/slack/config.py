@@ -18,6 +18,7 @@ class SlackOAuthSettings:
     scopes: tuple[str, ...] = (
         "app_mentions:read",
         "channels:history",
+        "channels:join",
         "channels:read",
         "groups:history",
         "groups:read",

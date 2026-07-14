@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Response
 from starlette.concurrency import run_in_threadpool
 
 from app.auth.dependencies import get_current_user_id
+from app.integrations.slack.services.cache import SlackCacheInvalidator
 from app.organizations.repository import (
     OrganizationRepository,
     OrganizationRepositoryError,
@@ -17,9 +18,17 @@ from app.organizations.schemas import (
     OrganizationBoardSlackChannelCreate,
     OrganizationBoardSlackChannelResponse,
 )
+from app.redis.client import RedisConfigurationError, get_redis_client
 
 
 router = APIRouter()
+
+
+def get_slack_cache_invalidator() -> SlackCacheInvalidator | None:
+    try:
+        return SlackCacheInvalidator(get_redis_client())
+    except RedisConfigurationError:
+        return None
 
 
 @router.get(
@@ -53,9 +62,13 @@ async def add_organization_board_slack_channel(
     request: OrganizationBoardSlackChannelCreate,
     _: Annotated[UUID, Depends(get_current_user_id)],
     repository: Annotated[OrganizationRepository, Depends(get_organization_repository)],
+    cache_invalidator: Annotated[
+        SlackCacheInvalidator | None,
+        Depends(get_slack_cache_invalidator),
+    ],
 ) -> OrganizationBoardSlackChannelResponse:
     try:
-        return await run_in_threadpool(
+        channel = await run_in_threadpool(
             repository.add_board_slack_channel,
             organization_id,
             board_id,
@@ -63,6 +76,13 @@ async def add_organization_board_slack_channel(
             request.slack_channel_id,
             request.slack_channel_name,
         )
+        if cache_invalidator is not None:
+            await cache_invalidator.invalidate_channel_mapping(
+                str(organization_id),
+                request.slack_team_id,
+                request.slack_channel_id,
+            )
+        return channel
     except OrganizationRepositoryError as error:
         organization_http_error(error)
 
@@ -78,6 +98,10 @@ async def remove_organization_board_slack_channel(
     slack_channel_id: str,
     _: Annotated[UUID, Depends(get_current_user_id)],
     repository: Annotated[OrganizationRepository, Depends(get_organization_repository)],
+    cache_invalidator: Annotated[
+        SlackCacheInvalidator | None,
+        Depends(get_slack_cache_invalidator),
+    ],
 ) -> Response:
     try:
         await run_in_threadpool(
@@ -87,6 +111,12 @@ async def remove_organization_board_slack_channel(
             slack_team_id,
             slack_channel_id,
         )
+        if cache_invalidator is not None:
+            await cache_invalidator.invalidate_channel_mapping(
+                str(organization_id),
+                slack_team_id,
+                slack_channel_id,
+            )
         return Response(status_code=204)
     except OrganizationRepositoryError as error:
         organization_http_error(error)

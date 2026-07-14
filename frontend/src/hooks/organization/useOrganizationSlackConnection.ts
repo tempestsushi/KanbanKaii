@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import type { Organization } from '@/api/organizations';
 import {
+  getOrganizationSlackStatus,
+  refreshOrganizationSlackChannels,
   startSlackConnection,
   type OrganizationSlackBindingStatus,
 } from '@/integrations/slack/api';
@@ -18,6 +20,7 @@ export function useOrganizationSlackConnection({
 }: OrganizationSlackConnectionOptions) {
   const [slackBinding, setSlackBinding] = useState<OrganizationSlackBindingStatus>(disconnectedSlackBinding);
   const [isConnectingSlack, setIsConnectingSlack] = useState(false);
+  const [isRefreshingSlackChannels, setIsRefreshingSlackChannels] = useState(false);
 
   useEffect(() => {
     const query = new URLSearchParams(window.location.search);
@@ -44,9 +47,45 @@ export function useOrganizationSlackConnection({
     }
   };
 
+  const refreshSlackChannels = async () => {
+    if (!organization || !slackBinding.connected || isRefreshingSlackChannels) return;
+    setIsRefreshingSlackChannels(true);
+    try {
+      const result = await refreshOrganizationSlackChannels(organization.id);
+      if (result.reconnect_required) {
+        setSlackBinding((current) => ({
+          ...current,
+          reconnect_required: true,
+          reconnect_reason: result.missing_scopes.length
+            ? `Missing Slack scopes: ${result.missing_scopes.join(', ')}`
+            : result.message,
+        }));
+        toast.error(result.message);
+      } else {
+        setSlackBinding(await getOrganizationSlackStatus(organization.id));
+        const summary = result.channels_checked === 0
+          ? result.message
+          : `${result.message} Checked ${result.channels_checked}, joined ${result.channels_joined}, updated ${result.channels_updated}.`;
+        if (result.manual_invites_required.length > 0) {
+          toast.warning(
+            `${summary} Private channels need one manual invite: ${result.manual_invites_required.join(', ')}`,
+          );
+        } else {
+          toast.success(summary);
+        }
+      }
+    } catch (refreshError) {
+      toast.error(refreshError instanceof Error ? refreshError.message : 'Could not refresh Slack channels');
+    } finally {
+      setIsRefreshingSlackChannels(false);
+    }
+  };
+
   return {
     connectOrganizationSlack,
     isConnectingSlack,
+    isRefreshingSlackChannels,
+    refreshSlackChannels,
     setSlackBinding,
     slackBinding,
   };

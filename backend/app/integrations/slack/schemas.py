@@ -60,6 +60,20 @@ class OrganizationSlackBindingStatus(BaseModel):
     workspace_name: str | None = None
     slack_team_id: str | None = None
     verified_at: datetime | None = None
+    reconnect_required: bool = False
+    reconnect_reason: str | None = None
+
+
+class SlackChannelRefreshResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    channels_checked: int
+    channels_updated: int
+    channels_joined: int = 0
+    manual_invites_required: list[str] = Field(default_factory=list)
+    reconnect_required: bool = False
+    missing_scopes: list[str] = Field(default_factory=list)
+    message: str
 
 
 class SlackStoredInstallation(BaseModel):

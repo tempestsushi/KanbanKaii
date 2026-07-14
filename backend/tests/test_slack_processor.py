@@ -96,8 +96,8 @@ class FakeSlackChannelService:
     def __init__(self) -> None:
         self.lookups = []
 
-    async def display_name(self, owner_id, slack_channel_id, channel_type=None):
-        self.lookups.append((owner_id, slack_channel_id, channel_type))
+    async def display_name(self, owner_id, team_id, slack_channel_id, channel_type=None):
+        self.lookups.append((owner_id, team_id, slack_channel_id, channel_type))
         return "product-team"
 
 
@@ -257,7 +257,7 @@ class SlackEventProcessorTests(TestCase):
         self.assertEqual(ticket.source_channel_id, "C123")
         self.assertEqual(ticket.source_channel_name, "product-team")
         self.assertEqual(ticket.source_message_ts, "123.456")
-        self.assertEqual(slack_channels.lookups, [(assignee_id, "C123", "channel")])
+        self.assertEqual(slack_channels.lookups, [(assignee_id, "T123", "C123", "channel")])
         self.assertEqual(slack_repository.states[-1][4][0]["scope"], "ORGANIZATION")
 
     def test_mapped_slack_channel_scopes_organization_ticket_to_project_board(self) -> None:

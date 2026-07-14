@@ -42,6 +42,23 @@ class SlackBoardChannelBinding:
     slack_channel_id: str
 
 
+@dataclass(frozen=True)
+class SlackOrganizationWorkspaceBinding:
+    organization_id: UUID
+    verified_by_user_id: UUID
+    slack_team_id: str
+    workspace_name: str
+
+
+@dataclass(frozen=True)
+class SlackMappedChannel:
+    organization_id: UUID
+    board_id: UUID
+    slack_team_id: str
+    slack_channel_id: str
+    slack_channel_name: str | None
+
+
 class SlackRepository:
     def __init__(self, client: Client) -> None:
         self.client = client
@@ -163,6 +180,43 @@ class SlackRepository:
             slack_team_id=rows[0].get("slack_team_id"),
             verified_at=rows[0].get("verified_at"),
         )
+
+    def get_organization_workspace_binding(
+        self,
+        organization_id: UUID,
+    ) -> SlackOrganizationWorkspaceBinding | None:
+        try:
+            result = (
+                self.client.table("organization_slack_workspaces")
+                .select("organization_id,verified_by_user_id,slack_team_id,workspace_name")
+                .eq("organization_id", str(organization_id))
+                .limit(1)
+                .execute()
+            )
+        except Exception as exc:
+            raise SlackRepositoryError(
+                "Supabase could not load the organization Slack workspace"
+            ) from exc
+
+        rows: Any = result.data
+        if not isinstance(rows, list):
+            raise SlackRepositoryError(
+                "Supabase returned an invalid Slack workspace binding"
+            )
+        if not rows:
+            return None
+        try:
+            row = rows[0]
+            return SlackOrganizationWorkspaceBinding(
+                organization_id=UUID(str(row["organization_id"])),
+                verified_by_user_id=UUID(str(row["verified_by_user_id"])),
+                slack_team_id=str(row["slack_team_id"]),
+                workspace_name=str(row["workspace_name"]),
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise SlackRepositoryError(
+                "Supabase returned an invalid Slack workspace binding"
+            ) from exc
 
     def get_connection_status(self, owner_id: UUID) -> str | None:
         try:
@@ -558,6 +612,73 @@ class SlackRepository:
         except (KeyError, TypeError, ValueError) as exc:
             raise SlackRepositoryError(
                 "Supabase returned an invalid Slack board channel mapping"
+            ) from exc
+
+    def list_organization_mapped_channels(
+        self,
+        organization_id: UUID,
+    ) -> list[SlackMappedChannel]:
+        try:
+            result = (
+                self.client.table("organization_board_slack_channels")
+                .select(
+                    "organization_id,board_id,slack_team_id,slack_channel_id,slack_channel_name"
+                )
+                .eq("organization_id", str(organization_id))
+                .execute()
+            )
+        except Exception as exc:
+            raise SlackRepositoryError(
+                "Supabase could not load organization Slack channel mappings"
+            ) from exc
+
+        rows: Any = result.data
+        if not isinstance(rows, list):
+            raise SlackRepositoryError(
+                "Supabase returned invalid organization Slack channel mappings"
+            )
+        channels: list[SlackMappedChannel] = []
+        for row in rows:
+            try:
+                channel_name = row.get("slack_channel_name")
+                channels.append(
+                    SlackMappedChannel(
+                        organization_id=UUID(str(row["organization_id"])),
+                        board_id=UUID(str(row["board_id"])),
+                        slack_team_id=str(row["slack_team_id"]),
+                        slack_channel_id=str(row["slack_channel_id"]),
+                        slack_channel_name=channel_name
+                        if isinstance(channel_name, str) and channel_name
+                        else None,
+                    )
+                )
+            except (KeyError, TypeError, ValueError) as exc:
+                raise SlackRepositoryError(
+                    "Supabase returned an invalid organization Slack channel mapping"
+                ) from exc
+        return channels
+
+    def update_board_channel_display_name(
+        self,
+        organization_id: UUID,
+        board_id: UUID,
+        slack_team_id: str,
+        slack_channel_id: str,
+        slack_channel_name: str,
+    ) -> None:
+        try:
+            self.client.table("organization_board_slack_channels").update(
+                {"slack_channel_name": slack_channel_name}
+            ).eq("organization_id", str(organization_id)).eq(
+                "board_id", str(board_id)
+            ).eq(
+                "slack_team_id", slack_team_id
+            ).eq(
+                "slack_channel_id", slack_channel_id
+            ).execute()
+        except Exception as exc:
+            raise SlackRepositoryError(
+                "Supabase could not update the Slack channel display name"
             ) from exc
 
     def update_webhook_delivery(

@@ -5,4 +5,6 @@ export const disconnectedSlackBinding: OrganizationSlackBindingStatus = {
   workspace_name: null,
   slack_team_id: null,
   verified_at: null,
+  reconnect_required: false,
+  reconnect_reason: null,
 };

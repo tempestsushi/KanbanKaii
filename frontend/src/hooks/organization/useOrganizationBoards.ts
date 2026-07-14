@@ -18,7 +18,10 @@ import {
   type OrganizationBoardSlackChannel,
 } from '@/api/organizations';
 import { slugify } from '@/components/organization/organization-ui';
-import type { OrganizationSlackBindingStatus } from '@/integrations/slack/api';
+import {
+  refreshOrganizationSlackChannels,
+  type OrganizationSlackBindingStatus,
+} from '@/integrations/slack/api';
 
 type OrganizationBoardsOptions = {
   canCreateBoards: boolean;
@@ -166,7 +169,22 @@ export function useOrganizationBoards({
       setSlackChannelName('');
       setShowSlackChannelForm(false);
       setBoardSlackChannels(await listOrganizationBoardSlackChannels(organization.id, selectedBoard.id));
-      toast.success('Slack channel linked to project board');
+      try {
+        const refresh = await refreshOrganizationSlackChannels(organization.id);
+        if (refresh.reconnect_required) {
+          toast.error('Slack channel linked, but Slack needs updated permissions. Reconnect Slack once.');
+        } else if (refresh.manual_invites_required.includes(slackChannelId.trim())) {
+          toast.warning('Slack channel linked. Private channels need the app invited once inside Slack.');
+        } else {
+          toast.success(
+            refresh.channels_joined > 0
+              ? 'Slack channel linked and KanbanKaii joined the public channel'
+              : 'Slack channel linked to project board',
+          );
+        }
+      } catch {
+        toast.warning('Slack channel linked, but KanbanKaii could not verify channel membership yet.');
+      }
     } catch (channelError) {
       toast.error(channelError instanceof Error ? channelError.message : 'Could not link Slack channel');
     } finally {
