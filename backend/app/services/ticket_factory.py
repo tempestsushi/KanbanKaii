@@ -22,6 +22,7 @@ def create_ticket_from_analysis(
     requested_by_name: str | None = None,
     source_team_id: str | None = None,
     source_channel_id: str | None = None,
+    source_channel_name: str | None = None,
     source_message_ts: str | None = None,
 ) -> TicketCreate:
     """Convert an actionable AI analysis into validated ticket data."""
@@ -47,5 +48,6 @@ def create_ticket_from_analysis(
         requested_by_name=requested_by_name,
         source_team_id=source_team_id,
         source_channel_id=source_channel_id,
+        source_channel_name=source_channel_name,
         source_message_ts=source_message_ts,
     )

@@ -58,6 +58,7 @@ class TicketCreate(BaseModel):
     requested_by_name: str | None = Field(default=None, min_length=1, max_length=100)
     source_team_id: str | None = Field(default=None, min_length=1, max_length=255)
     source_channel_id: str | None = Field(default=None, min_length=1, max_length=255)
+    source_channel_name: str | None = Field(default=None, min_length=1, max_length=255)
     source_message_ts: str | None = Field(default=None, min_length=1, max_length=255)
     source_message_state: SourceMessageState = "ACTIVE"
     source_message_deleted_at: datetime | None = None

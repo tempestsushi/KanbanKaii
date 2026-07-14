@@ -9,6 +9,7 @@ from app.integrations.slack.data.repository import (
     SlackRepository,
 )
 from app.integrations.slack.schemas import SlackEvent
+from app.integrations.slack.services.channels import SlackChannelService
 from app.integrations.slack.services.users import SlackUserService
 from app.schemas.triage import AIAnalysisResult, IncomingMessage
 from app.services.ai_provider import AIModelService
@@ -35,11 +36,13 @@ class SlackEventProcessor:
         ticket_repository: TicketRepository,
         ollama_service: AIModelService,
         slack_user_service: SlackUserService | None = None,
+        slack_channel_service: SlackChannelService | None = None,
     ) -> None:
         self.slack_repository = slack_repository
         self.ticket_repository = ticket_repository
         self.ollama_service = ollama_service
         self.slack_user_service = slack_user_service
+        self.slack_channel_service = slack_channel_service
 
     async def process(
         self,
@@ -84,6 +87,13 @@ class SlackEventProcessor:
                 sender_name = await self.slack_user_service.display_name(
                     targets[0].owner_id,
                     event.user,
+                )
+            source_channel_name = None
+            if self.slack_channel_service is not None:
+                source_channel_name = await self.slack_channel_service.display_name(
+                    targets[0].owner_id,
+                    event.channel,
+                    event.channel_type,
                 )
 
             message = IncomingMessage(text=prepared_text, user_name=sender_name)
@@ -175,6 +185,7 @@ class SlackEventProcessor:
                             requested_by_name=sender_name,
                             source_team_id=team_id,
                             source_channel_id=event.channel,
+                            source_channel_name=source_channel_name,
                             source_message_ts=event.ts,
                         )
                         ticket = await run_in_threadpool(

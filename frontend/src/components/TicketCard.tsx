@@ -3,7 +3,6 @@ import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
 import type { Ticket } from '@/types/ticket';
 import Github from 'lucide-react/dist/esm/icons/github';
-import GripVertical from 'lucide-react/dist/esm/icons/grip-vertical';
 import MessageSquare from 'lucide-react/dist/esm/icons/message-square';
 import UserRound from 'lucide-react/dist/esm/icons/user-round';
 
@@ -43,6 +42,7 @@ export function TicketCard({ ticket, onEdit, boardName, overlay = false, draggab
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    touchAction: draggable ? 'none' : 'auto',
   };
 
   const priority = priorityConfig[ticket.priority];
@@ -50,33 +50,44 @@ export function TicketCard({ ticket, onEdit, boardName, overlay = false, draggab
   const SourceIcon = ticket.source === 'GitHub' ? Github : MessageSquare;
   const isAssignedTicket = ticket.scope !== 'PRIVATE';
   const requesterName = ticket.requestedByName;
-  const slackChannelLabel =
-    ticket.source === 'Slack' && ticket.sourceChannelId
-      ? `# ${ticket.sourceChannelId}`
-      : null;
+  const slackChannelLabel = (() => {
+    if (ticket.source !== 'Slack') return null;
+    const readableName = ticket.sourceChannelName?.trim();
+    if (readableName) {
+      return readableName.toLowerCase().includes('direct message')
+        ? readableName
+        : `#${readableName.replace(/^#/, '')}`;
+    }
+    return ticket.sourceChannelId ? `#${ticket.sourceChannelId}` : null;
+  })();
 
   return (
     <div
       ref={setNodeRef}
       style={style}
+      {...(draggable ? attributes : {})}
+      {...(draggable ? listeners : {})}
       onClick={() => onEdit(ticket)}
       className={cn(
         'group relative cursor-pointer rounded border border-slate-200 bg-white p-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-md',
+        draggable && 'cursor-grab active:cursor-grabbing',
         isDragging && 'opacity-50 rotate-2 shadow-xl ring-2 ring-primary/20'
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <h4 className="pr-6 text-xs font-semibold leading-snug text-slate-800">
+        <h4 className="pr-5 text-xs font-semibold leading-snug text-slate-800">
           {ticket.title}
         </h4>
-        {draggable && <button
-          {...attributes}
-          {...listeners}
-          onClick={(e) => e.stopPropagation()}
-          className="absolute right-2.5 top-2.5 cursor-grab rounded p-0.5 text-slate-400 opacity-0 transition-opacity hover:bg-slate-100 hover:text-slate-700 group-hover:opacity-100 active:cursor-grabbing"
-        >
-          <GripVertical className="h-4 w-4" />
-        </button>}
+        {draggable && (
+          <span
+            aria-hidden="true"
+            className="absolute right-2.5 top-2.5 grid grid-cols-2 gap-0.5 opacity-60 transition-opacity group-hover:opacity-100"
+          >
+            {Array.from({ length: 6 }).map((_, index) => (
+              <span key={index} className="h-1 w-1 rounded-full bg-slate-400" />
+            ))}
+          </span>
+        )}
       </div>
 
       {ticket.description && (

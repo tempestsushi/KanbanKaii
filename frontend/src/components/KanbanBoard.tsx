@@ -104,6 +104,7 @@ export function KanbanBoard({
   const [sourceFilter, setSourceFilter] = useState<TicketSource | 'ALL'>('ALL');
   const [sortMode, setSortMode] = useState<SortMode>('NEWEST');
   const [openMenu, setOpenMenu] = useState<BoardMenu>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
   const controlsRef = useRef<HTMLDivElement>(null);
   const ticketsRef = useRef<Ticket[]>([]);
   const notificationSettings = useMemo(() => notificationSettingsFromUser(user), [user]);
@@ -360,15 +361,30 @@ export function KanbanBoard({
             {toolbarContext}
           </div>
         )}
-        <label className="order-3 flex min-w-0 flex-1 basis-full items-center gap-2 text-slate-400 sm:order-2 sm:max-w-xs sm:basis-auto">
-          <Search className="h-4 w-4 shrink-0" />
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search tickets"
-            className="w-full bg-transparent text-xs text-slate-700 outline-none placeholder:text-slate-400"
-          />
-        </label>
+        <div className="order-3 flex min-w-0 basis-full items-center gap-2 sm:order-2 sm:basis-auto">
+          <button
+            type="button"
+            aria-label="Search tickets"
+            aria-expanded={searchOpen || Boolean(query)}
+            onClick={() => setSearchOpen((open) => !open)}
+            className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg border text-slate-500 transition hover:border-violet-300 hover:text-violet-600 ${
+              searchOpen || query ? 'border-violet-200 bg-violet-50 text-violet-700' : 'border-slate-200 bg-white'
+            }`}
+          >
+            <Search className="h-4 w-4" />
+          </button>
+          {(searchOpen || query) && (
+            <label className="flex min-w-0 flex-1 items-center rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm sm:w-72 sm:flex-none">
+              <input
+                autoFocus
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search tickets"
+                className="w-full bg-transparent text-xs text-slate-700 outline-none placeholder:text-slate-400"
+              />
+            </label>
+          )}
+        </div>
         <div ref={controlsRef} className="order-2 relative ml-auto flex w-auto shrink-0 items-center justify-end gap-1 sm:order-3 sm:gap-2">
           {canCreate && <button type="button" onClick={() => openCreator('Pending')} className="flex items-center gap-1.5 rounded border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-medium text-slate-700 shadow-sm hover:border-violet-300 hover:text-violet-600">
             <Plus className="h-3.5 w-3.5" /><span className="hidden sm:inline">New ticket</span>
@@ -480,8 +496,8 @@ export function KanbanBoard({
             </button>
           </div>
         )}
-        <div className="overflow-x-auto">
-          <div className="grid min-h-[calc(100dvh-11rem)] min-w-[780px] grid-cols-3 divide-x divide-slate-200 bg-white sm:min-h-[calc(100dvh-7.5rem)]">
+        <div className="overflow-x-auto overscroll-x-contain">
+          <div className="flex min-h-[calc(100dvh-11rem)] snap-x snap-mandatory gap-3 bg-white p-3 sm:grid sm:min-h-[calc(100dvh-7.5rem)] sm:min-w-[780px] sm:grid-cols-3 sm:gap-0 sm:divide-x sm:divide-slate-200 sm:p-0">
             {TICKET_STATUSES.map((status) => (
               <KanbanColumn
                 key={status}

@@ -10,6 +10,7 @@ from app.integrations.slack.security.encryption import TokenCipher
 from app.integrations.slack.processing.processor import SlackEventProcessor
 from app.integrations.slack.processing.queued_processor import SlackQueuedEventHandler
 from app.integrations.slack.data.repository import SlackRepository
+from app.integrations.slack.services.channels import SlackChannelService
 from app.integrations.slack.services.users import SlackUserService
 from app.redis.client import get_arq_redis_settings
 from app.services.model_service import get_ai_model_service
@@ -26,6 +27,10 @@ async def startup(ctx: dict[str, Any]) -> None:
         ticket_repository=TicketRepository(repository.client),
         ollama_service=get_ai_model_service(),
         slack_user_service=SlackUserService(
+            repository,
+            TokenCipher(settings.encryption_key),
+        ),
+        slack_channel_service=SlackChannelService(
             repository,
             TokenCipher(settings.encryption_key),
         ),

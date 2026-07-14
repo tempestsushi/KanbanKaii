@@ -26,6 +26,7 @@ export interface Ticket {
   requestedByName?: string;
   sourceTeamId?: string;
   sourceChannelId?: string;
+  sourceChannelName?: string;
   sourceMessageTs?: string;
   sourceMessageState: SourceMessageState;
   sourceMessageDeletedAt?: string;

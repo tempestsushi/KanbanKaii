@@ -78,7 +78,7 @@ export function KanbanColumn({
       onScroll={handleScroll}
       onWheel={handleWheel}
       className={cn(
-        "flex h-[calc(100vh-7.5rem)] min-h-[360px] w-full min-w-0 flex-col overflow-y-auto bg-white px-3 py-3 sm:px-4",
+        "flex h-[calc(100dvh-12rem)] min-h-[380px] w-[84vw] max-w-[360px] shrink-0 snap-start flex-col overflow-y-auto rounded-xl border border-slate-200 bg-white px-3 py-3 shadow-sm sm:h-[calc(100vh-7.5rem)] sm:max-w-none sm:w-full sm:min-w-0 sm:rounded-none sm:border-0 sm:px-4 sm:shadow-none",
         isOver && "bg-violet-50/70",
       )}
     >

@@ -92,6 +92,15 @@ class FakeSlackUserService:
         return "Aisha"
 
 
+class FakeSlackChannelService:
+    def __init__(self) -> None:
+        self.lookups = []
+
+    async def display_name(self, owner_id, slack_channel_id, channel_type=None):
+        self.lookups.append((owner_id, slack_channel_id, channel_type))
+        return "product-team"
+
+
 class SlackEventProcessorTests(TestCase):
     def test_actionable_mention_creates_private_owner_ticket(self) -> None:
         owner_id = uuid4()
@@ -209,11 +218,13 @@ class SlackEventProcessorTests(TestCase):
             assignee_role="MEMBER",
         )
         tickets = FakeTicketRepository()
+        slack_channels = FakeSlackChannelService()
         processor = SlackEventProcessor(
             slack_repository,
             tickets,
             FakeOllamaService(),
             FakeSlackUserService(),
+            slack_channels,
         )
 
         asyncio.run(
@@ -244,7 +255,9 @@ class SlackEventProcessorTests(TestCase):
         self.assertEqual(ticket.requested_by_name, "Aisha")
         self.assertEqual(ticket.source_team_id, "T123")
         self.assertEqual(ticket.source_channel_id, "C123")
+        self.assertEqual(ticket.source_channel_name, "product-team")
         self.assertEqual(ticket.source_message_ts, "123.456")
+        self.assertEqual(slack_channels.lookups, [(assignee_id, "C123", "channel")])
         self.assertEqual(slack_repository.states[-1][4][0]["scope"], "ORGANIZATION")
 
     def test_mapped_slack_channel_scopes_organization_ticket_to_project_board(self) -> None:
