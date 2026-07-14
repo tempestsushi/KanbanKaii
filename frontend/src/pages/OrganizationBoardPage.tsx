@@ -164,7 +164,24 @@ export function OrganizationBoardPage() {
   }
 
   if (error && !organization) {
-    return <div className="p-8"><p className="text-sm text-red-600">{error}</p><Button className="mt-4" variant="outline" onClick={() => void loadOrganization()}>Retry</Button></div>;
+    return (
+      <KanbanBoard
+        skipLoad
+        toolbarContext={
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="min-w-0">
+              <p className="truncate text-xs font-semibold text-violet-600">Organization board</p>
+              <p className="hidden max-w-sm truncate text-[10px] text-slate-400 sm:block">
+                Backend offline. Shared tickets will appear when the server is reachable.
+              </p>
+            </div>
+            <Button className="h-8 px-3 text-[11px]" variant="outline" onClick={() => void loadOrganization()}>
+              Retry
+            </Button>
+          </div>
+        }
+      />
+    );
   }
 
   if (!organization || !role) {

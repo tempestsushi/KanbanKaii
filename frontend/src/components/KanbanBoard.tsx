@@ -80,6 +80,7 @@ interface KanbanBoardProps {
   organizationRole?: OrganizationRole;
   organizationMembers?: Array<{ user_id: string; display_name: string }>;
   toolbarContext?: ReactNode;
+  skipLoad?: boolean;
 }
 
 export function KanbanBoard({
@@ -90,10 +91,11 @@ export function KanbanBoard({
   organizationRole,
   organizationMembers = [],
   toolbarContext,
+  skipLoad = false,
 }: KanbanBoardProps) {
   const { user } = useAuth();
   const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!skipLoad);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
@@ -110,7 +112,7 @@ export function KanbanBoard({
   const notificationSettings = useMemo(() => notificationSettingsFromUser(user), [user]);
   const isOrganizationBoard = Boolean(organizationId);
   const canManageOrganization = organizationRole === 'OWNER' || organizationRole === 'TEAM_LEAD';
-  const canCreate = !isOrganizationBoard || canManageOrganization;
+  const canCreate = !skipLoad && (!isOrganizationBoard || canManageOrganization);
   const assigneeOptions = useMemo(
     () => organizationMembers
       .filter((member) => member.user_id !== user?.id)
@@ -118,8 +120,8 @@ export function KanbanBoard({
     [organizationMembers, user?.id],
   );
   const canMoveTicket = useCallback(
-    () => !isOrganizationBoard,
-    [isOrganizationBoard],
+    () => !skipLoad && !isOrganizationBoard,
+    [isOrganizationBoard, skipLoad],
   );
 
   const activeFilterCount = Number(priorityFilter !== 'ALL') + Number(sourceFilter !== 'ALL');
@@ -164,6 +166,12 @@ export function KanbanBoard({
   }, []);
 
   const loadTickets = useCallback(async (signal?: AbortSignal) => {
+    if (skipLoad) {
+      setTickets([]);
+      setLoadError(null);
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     setLoadError(null);
     try {
@@ -186,7 +194,7 @@ export function KanbanBoard({
     } finally {
       if (!signal?.aborted) setIsLoading(false);
     }
-  }, [organizationBoardId, organizationId, organizationTicketView]);
+  }, [organizationBoardId, organizationId, organizationTicketView, skipLoad]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -199,7 +207,7 @@ export function KanbanBoard({
   }, [tickets]);
 
   useEffect(() => {
-    if (!user) return undefined;
+    if (!user || skipLoad) return undefined;
 
     const supabase = getSupabaseClient();
     const realtimeFilter = organizationId
@@ -255,7 +263,7 @@ export function KanbanBoard({
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [isOrganizationBoard, notificationSettings.newTickets, notificationSettings.statusChanges, organizationId, user]);
+  }, [isOrganizationBoard, notificationSettings.newTickets, notificationSettings.statusChanges, organizationId, skipLoad, user]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
