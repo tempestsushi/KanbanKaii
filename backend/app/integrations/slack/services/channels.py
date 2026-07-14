@@ -40,19 +40,46 @@ class SlackChannelService:
         try:
             installation = self.repository.get_installation(owner_id)
             if installation is None:
+                logger.info(
+                    "Slack channel name skipped because installation was not found",
+                    extra={"slack_channel_id": slack_channel_id},
+                )
                 return None
             token = self.token_cipher.decrypt(installation.token_ciphertext)
             payload = await self._get_channel(token, slack_channel_id)
             if payload.get("ok") is not True:
+                logger.warning(
+                    "Slack channel lookup returned non-ok response",
+                    extra={
+                        "slack_channel_id": slack_channel_id,
+                        "slack_error": payload.get("error"),
+                    },
+                )
                 return None
 
             channel = payload.get("channel")
             if not isinstance(channel, dict):
+                logger.warning(
+                    "Slack channel lookup returned invalid channel payload",
+                    extra={"slack_channel_id": slack_channel_id},
+                )
                 return None
             for field in ("name_normalized", "name"):
                 value = channel.get(field)
                 if isinstance(value, str) and value.strip():
-                    return value.strip().lstrip("#")
+                    resolved = value.strip().lstrip("#")
+                    logger.info(
+                        "Slack channel name resolved",
+                        extra={
+                            "slack_channel_id": slack_channel_id,
+                            "slack_channel_name": resolved,
+                        },
+                    )
+                    return resolved
+            logger.warning(
+                "Slack channel lookup did not include a readable name",
+                extra={"slack_channel_id": slack_channel_id},
+            )
             return None
         except (SlackRepositoryError, TokenEncryptionError, httpx.HTTPError, ValueError, TypeError):
             logger.warning(

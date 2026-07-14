@@ -15,7 +15,16 @@ class SlackOAuthSettings:
     redirect_uri: str
     frontend_return_url: str
     encryption_key: str
-    scopes: tuple[str, ...] = ("channels:history", "users:read")
+    scopes: tuple[str, ...] = (
+        "app_mentions:read",
+        "channels:history",
+        "channels:read",
+        "groups:history",
+        "groups:read",
+        "im:history",
+        "mpim:read",
+        "users:read",
+    )
 
 
 def get_slack_oauth_settings() -> SlackOAuthSettings:

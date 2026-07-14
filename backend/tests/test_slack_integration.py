@@ -173,7 +173,7 @@ class SlackIntegrationTests(TestCase):
         query = parse_qs(urlparse(authorization_url).query)
 
         self.assertEqual(query["client_id"], ["123.456"])
-        self.assertEqual(query["scope"], ["channels:history,users:read"])
+        self.assertEqual(query["scope"], [",".join(settings.scopes)])
         raw_state = query["state"][0]
         self.assertEqual(state_store.saved_state[0], owner_id)
         self.assertEqual(
