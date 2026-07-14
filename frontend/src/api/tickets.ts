@@ -117,6 +117,11 @@ async function authenticatedHeaders(
   };
 }
 
+async function responseError(response: Response, fallback: string): Promise<Error> {
+  const body = await response.json().catch(() => null) as { detail?: string } | null;
+  return new Error(body?.detail ?? `${fallback} (${response.status})`);
+}
+
 export async function fetchTickets(
   options: FetchTicketsOptions = {},
 ): Promise<Ticket[]> {
@@ -134,7 +139,7 @@ export async function fetchTickets(
     headers: await authenticatedHeaders(),
   });
   if (!response.ok) {
-    throw new Error(`Could not load tickets (${response.status})`);
+    throw await responseError(response, 'Could not load tickets');
   }
 
   const tickets = (await response.json()) as ApiTicket[];
@@ -156,7 +161,7 @@ export async function fetchOrganizationTickets(
     signal: options.signal,
     headers: await authenticatedHeaders(),
   });
-  if (!response.ok) throw new Error(`Could not load organization tickets (${response.status})`);
+  if (!response.ok) throw await responseError(response, 'Could not load organization tickets');
   return ((await response.json()) as ApiTicket[]).map(mapApiTicket);
 }
 
@@ -178,7 +183,7 @@ export async function updateTicketStatus(
     body: JSON.stringify({ status: apiStatusMap[status] }),
   });
   if (!response.ok) {
-    throw new Error(`Could not update ticket (${response.status})`);
+    throw await responseError(response, 'Could not update ticket');
   }
 
   return mapApiTicket((await response.json()) as ApiTicket);
@@ -203,7 +208,7 @@ export async function updateTicket(
     }),
   });
   if (!response.ok) {
-    throw new Error(`Could not update ticket (${response.status})`);
+    throw await responseError(response, 'Could not update ticket');
   }
 
   return mapApiTicket((await response.json()) as ApiTicket);
@@ -230,7 +235,7 @@ export async function updateOrganizationTicket(
       }),
     },
   );
-  if (!response.ok) throw new Error(`Could not update organization ticket (${response.status})`);
+  if (!response.ok) throw await responseError(response, 'Could not update organization ticket');
   return mapApiTicket((await response.json()) as ApiTicket);
 }
 
@@ -253,7 +258,7 @@ export async function createTicket(values: TicketFormValues): Promise<Ticket> {
     }),
   });
   if (!response.ok) {
-    throw new Error(`Could not create ticket (${response.status})`);
+    throw await responseError(response, 'Could not create ticket');
   }
 
   return mapApiTicket((await response.json()) as ApiTicket);
@@ -283,8 +288,7 @@ export async function createOrganizationTicket(
     },
   );
   if (!response.ok) {
-    const body = await response.json().catch(() => null) as { detail?: string } | null;
-    throw new Error(body?.detail ?? `Could not create organization ticket (${response.status})`);
+    throw await responseError(response, 'Could not create organization ticket');
   }
   return mapApiTicket((await response.json()) as ApiTicket);
 }
@@ -303,7 +307,7 @@ export async function deleteTicket(ticketId: string): Promise<void> {
     headers: await authenticatedHeaders(),
   });
   if (!response.ok) {
-    throw new Error(`Could not delete ticket (${response.status})`);
+    throw await responseError(response, 'Could not delete ticket');
   }
 }
 
@@ -317,5 +321,5 @@ export async function deleteOrganizationTicket(
     new URL(`/api/tickets/organizations/${organizationId}/${ticketId}`, apiBaseUrl),
     { method: 'DELETE', headers: await authenticatedHeaders() },
   );
-  if (!response.ok) throw new Error(`Could not delete organization ticket (${response.status})`);
+  if (!response.ok) throw await responseError(response, 'Could not delete organization ticket');
 }

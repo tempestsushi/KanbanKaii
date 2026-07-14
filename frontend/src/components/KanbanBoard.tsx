@@ -310,8 +310,9 @@ export function KanbanBoard({
   const saveTicket = async (values: TicketFormValues): Promise<boolean> => {
     if (editingTicket) {
       try {
-        const updatedTicket = organizationId
-          ? await updateOrganizationTicket(organizationId, editingTicket.id, values)
+        const ticketOrganizationId = organizationId ?? editingTicket.organizationId;
+        const updatedTicket = ticketOrganizationId && editingTicket.scope === 'ORGANIZATION'
+          ? await updateOrganizationTicket(ticketOrganizationId, editingTicket.id, values)
           : await updateTicket(editingTicket.id, values);
         setTickets((items) =>
           items.map((item) => item.id === updatedTicket.id ? updatedTicket : item),
@@ -319,8 +320,8 @@ export function KanbanBoard({
         setModalOpen(false);
         toast.success('Ticket updated');
         return true;
-      } catch {
-        toast.error('Could not update the ticket');
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Could not update the ticket');
         return false;
       }
     }
@@ -341,14 +342,18 @@ export function KanbanBoard({
 
   const deleteTicket = async (id: string): Promise<boolean> => {
     try {
-      if (organizationId) await deleteOrganizationTicket(organizationId, id);
+      const ticket = tickets.find((item) => item.id === id);
+      const ticketOrganizationId = organizationId ?? ticket?.organizationId;
+      if (ticketOrganizationId && ticket?.scope === 'ORGANIZATION') {
+        await deleteOrganizationTicket(ticketOrganizationId, id);
+      }
       else await deleteStoredTicket(id);
       setTickets((items) => items.filter((ticket) => ticket.id !== id));
       setModalOpen(false);
       toast.success('Ticket deleted');
       return true;
-    } catch {
-      toast.error('Could not delete the ticket');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not delete the ticket');
       return false;
     }
   };

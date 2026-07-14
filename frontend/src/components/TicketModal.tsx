@@ -89,35 +89,37 @@ export function TicketModal({ ticket, isOpen, defaultStatus, onClose, onSave, on
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader><DialogTitle>{readOnly ? 'Ticket details' : ticket ? 'Edit ticket' : 'Create ticket'}</DialogTitle></DialogHeader>
-        <div className="grid gap-4 py-3">
+      <DialogContent className="grid max-h-[92dvh] w-[calc(100vw-1.5rem)] max-w-[26rem] grid-rows-[auto,minmax(0,1fr),auto] gap-0 overflow-hidden rounded-xl border-white/70 bg-white/95 p-0 shadow-2xl sm:max-h-[86vh] sm:max-w-md">
+        <DialogHeader className="border-b border-slate-100 px-4 py-3 pr-11 sm:px-5">
+          <DialogTitle className="text-base">{readOnly ? 'Ticket details' : ticket ? 'Edit ticket' : 'Create ticket'}</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-3 overflow-y-auto px-4 py-3 sm:px-5">
           {(isAssignedTicket || hasRequester) && ticket && (
             <div className="grid gap-3 rounded-lg border border-violet-100 bg-violet-50/60 p-3 sm:grid-cols-2">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-violet-500">
                   {isAssignedTicket ? 'Assigned by' : 'Requested by'}
                 </p>
-                <p className="mt-1 text-sm font-medium text-slate-700">{ticket.requestedByName ?? 'Organization lead'}</p>
+                <p className="mt-1 truncate text-sm font-medium text-slate-700">{ticket.requestedByName ?? 'Organization lead'}</p>
               </div>
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-violet-500">
                   {isAssignedTicket ? 'Assigned to' : 'Ticket owner'}
                 </p>
-                <p className="mt-1 text-sm font-medium text-slate-700">{ticket.assignee}</p>
+                <p className="mt-1 truncate text-sm font-medium text-slate-700">{ticket.assignee}</p>
               </div>
             </div>
           )}
-          <div className="grid gap-2">
+          <div className="grid gap-1.5">
             <Label htmlFor="ticket-title">Title</Label>
-            <Input id="ticket-title" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="What needs to be done?" disabled={readOnly} />
+            <Input className="h-10" id="ticket-title" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="What needs to be done?" disabled={readOnly} />
           </div>
-          <div className="grid gap-2">
+          <div className="grid gap-1.5">
             <Label htmlFor="ticket-description">Description</Label>
-            <Textarea id="ticket-description" value={description} onChange={(event) => setDescription(event.target.value)} rows={4} placeholder="Add useful context and acceptance details" disabled={readOnly} />
+            <Textarea className="min-h-20" id="ticket-description" value={description} onChange={(event) => setDescription(event.target.value)} rows={3} placeholder="Add useful context and acceptance details" disabled={readOnly} />
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-2">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-1.5">
               <Label htmlFor="ticket-assignee">Assignee</Label>
               {assigneeOptions && !ticket ? (
                 <Select value={assigneeUserId} onValueChange={setAssigneeUserId} disabled={readOnly}>
@@ -125,24 +127,24 @@ export function TicketModal({ ticket, isOpen, defaultStatus, onClose, onSave, on
                   <SelectContent>{assigneeOptions.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent>
                 </Select>
               ) : (
-                <Input id="ticket-assignee" value={assignee} onChange={(event) => setAssignee(event.target.value)} placeholder="Name" disabled={readOnly || Boolean(assigneeOptions)} />
+                <Input className="h-10" id="ticket-assignee" value={assignee} onChange={(event) => setAssignee(event.target.value)} placeholder="Name" disabled={readOnly || Boolean(assigneeOptions)} />
               )}
             </div>
-            <div className="grid gap-2">
+            <div className="grid gap-1.5">
               <Label>Priority</Label>
               <Select value={priority} onValueChange={(value: TicketPriority) => setPriority(value)} disabled={readOnly}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{TICKET_PRIORITIES.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="grid gap-2">
+            <div className="grid gap-1.5">
               <Label>Status</Label>
               <Select value={status} onValueChange={(value: TicketStatus) => setStatus(value)} disabled={readOnly}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{TICKET_STATUSES.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="grid gap-2">
+            <div className="grid gap-1.5">
               <Label>Source</Label>
               <Select value={source} onValueChange={(value: TicketSource) => setSource(value)} disabled={readOnly}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -151,7 +153,7 @@ export function TicketModal({ ticket, isOpen, defaultStatus, onClose, onSave, on
             </div>
           </div>
         </div>
-        <DialogFooter className="gap-2 sm:gap-2">
+        <DialogFooter className="gap-2 border-t border-slate-100 bg-white px-4 py-3 sm:gap-2 sm:px-5">
           {ticket && !readOnly && <Button variant="destructive" className="sm:mr-auto" disabled={isSaving || isDeleting} onClick={() => setDeleteConfirmationOpen(true)}><Trash2 className="mr-2 h-4 w-4" />Delete</Button>}
           <Button variant="outline" disabled={isSaving || isDeleting} onClick={onClose}>{readOnly ? 'Close' : 'Cancel'}</Button>
           {!readOnly && <Button disabled={!title.trim() || !description.trim() || (Boolean(assigneeOptions) && !ticket && !assigneeUserId) || isSaving || isDeleting} onClick={() => void submit()}>{isSaving ? (ticket ? 'Saving…' : 'Creating…') : ticket ? 'Save changes' : 'Create ticket'}</Button>}
