@@ -271,11 +271,11 @@ function TicketCreatedScreen() {
           </span>
         </div>
 
-        <div className="grid min-h-0 flex-1 grid-cols-3 gap-3 overflow-hidden rounded-2xl">
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-hidden rounded-2xl sm:grid-cols-3">
           {["Pending", "In Progress", "Completed"].map((column, index) => (
             <div
               key={column}
-              className="min-h-0 overflow-hidden rounded-2xl bg-slate-100 p-3"
+              className={`min-h-0 overflow-hidden rounded-2xl bg-slate-100 p-3 ${index > 0 ? "hidden sm:block" : ""}`}
             >
               <div className="mb-3 flex items-center justify-between">
                 <span className="text-xs font-black text-slate-600">

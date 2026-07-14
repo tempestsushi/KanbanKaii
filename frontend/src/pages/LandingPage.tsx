@@ -47,7 +47,7 @@ export function LandingPage() {
           aria-hidden="true"
         />
 
-        <nav className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-5 py-6 sm:px-8 lg:px-10">
+        <nav className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8 lg:px-10">
           <a
             href="/"
             className="flex items-center gap-3"
@@ -71,15 +71,15 @@ export function LandingPage() {
             </a>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3">
             <a
-              className="hidden px-3 py-2 text-sm font-semibold text-slate-700 transition hover:text-violet-700 sm:block"
+              className="rounded-lg px-2.5 py-2 text-xs font-semibold text-slate-700 transition hover:bg-white/70 hover:text-violet-700 sm:px-3 sm:text-sm"
               href="/auth"
             >
               Sign in
             </a>
             <a
-              className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-slate-300 transition hover:-translate-y-0.5 hover:bg-violet-700"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-slate-950 px-3 py-2.5 text-xs font-semibold text-white shadow-lg shadow-slate-300 transition hover:-translate-y-0.5 hover:bg-violet-700 sm:gap-2 sm:px-4 sm:text-sm"
               href={workspaceHref}
             >
               {workspaceLabel}
@@ -88,46 +88,63 @@ export function LandingPage() {
           </div>
         </nav>
 
-        <section className="relative z-[1] mx-auto max-w-7xl px-5 pb-24 pt-16 sm:px-8 sm:pt-20 lg:px-10 lg:pb-32 lg:pt-24">
-          <div className="max-w-2xl">
-            <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-violet-200 bg-white/80 px-3.5 py-2 text-xs font-bold uppercase tracking-[0.16em] text-violet-700 shadow-sm backdrop-blur">
-              <Sparkles className="h-3.5 w-3.5" />
-              Conversation into action
-            </div>
-            <h1 className="text-5xl font-black leading-[0.98] tracking-[-0.055em] text-slate-950 sm:text-6xl lg:text-7xl">
-              Your messages already know what needs to be done.
-            </h1>
-            <p className="mt-7 max-w-xl text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">
-              KanbanKaii spots actionable work in Slack, structures it with AI,
-              and places it on your private board—without turning every
-              conversation into a ticket.
-            </p>
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-              <a
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-6 py-3.5 text-sm font-bold text-white shadow-xl shadow-violet-300/40 transition hover:-translate-y-0.5 hover:bg-violet-700"
-                href={workspaceHref}
-              >
-                {workspaceLabel}
-                <ArrowRight className="h-4 w-4" />
-              </a>
-              <a
-                className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white/80 px-6 py-3.5 text-sm font-bold text-slate-700 transition hover:border-violet-200 hover:text-violet-700"
-                href="#how-it-works"
-              >
-                See how it works
-              </a>
-            </div>
-            <div className="mt-9 flex flex-wrap gap-x-6 gap-y-3 text-xs font-medium text-slate-500">
-              {["Private by default", "Realtime tickets", "Human editable"].map(
-                (item) => (
+        <section className="relative z-[1] mx-auto max-w-7xl px-5 pb-14 pt-10 sm:px-8 sm:pt-12 lg:px-10 lg:pb-16 lg:pt-10">
+          <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(20rem,0.95fr)] lg:gap-4">
+            <div className="relative z-10 max-w-4xl">
+              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-violet-200 bg-white/80 px-3.5 py-2 text-xs font-bold uppercase tracking-[0.16em] text-violet-700 shadow-sm backdrop-blur">
+                <Sparkles className="h-3.5 w-3.5" />
+                Conversation into action
+              </div>
+              <h1 className="text-5xl font-black leading-[0.98] tracking-[-0.055em] text-slate-950 sm:text-6xl lg:text-[5rem] xl:text-[5.65rem]">
+                Your messages already know what needs to be done.
+              </h1>
+              <p className="mt-6 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">
+                KanbanKaii spots actionable work in Slack, structures it with
+                AI, and places it on your private board - without turning every
+                conversation into a ticket.
+              </p>
+              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+                <a
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-6 py-3.5 text-sm font-bold text-white shadow-xl shadow-violet-300/40 transition hover:-translate-y-0.5 hover:bg-violet-700"
+                  href={workspaceHref}
+                >
+                  {workspaceLabel}
+                  <ArrowRight className="h-4 w-4" />
+                </a>
+                <a
+                  className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white/80 px-6 py-3.5 text-sm font-bold text-slate-700 transition hover:border-violet-200 hover:text-violet-700"
+                  href="#how-it-works"
+                >
+                  See how it works
+                </a>
+              </div>
+              <div className="mt-7 flex flex-wrap gap-x-6 gap-y-3 text-xs font-medium text-slate-500">
+                {[
+                  "Private by default",
+                  "Realtime tickets",
+                  "Human editable",
+                ].map((item) => (
                   <span key={item} className="inline-flex items-center gap-2">
                     <span className="grid h-5 w-5 place-items-center rounded-full bg-emerald-100 text-emerald-700">
                       <Check className="h-3 w-3" />
                     </span>
                     {item}
                   </span>
-                ),
-              )}
+                ))}
+              </div>
+            </div>
+
+            <div className="relative mx-auto hidden min-h-[29rem] w-full max-w-[34rem] md:block lg:mx-0 lg:min-h-[35rem] lg:max-w-none">
+              <div
+                className="absolute inset-x-0 top-10 mx-auto h-[24rem] w-[24rem] rounded-full bg-violet-300/25 blur-3xl lg:h-[30rem] lg:w-[30rem]"
+                aria-hidden="true"
+              />
+              <img
+                src="/landing-mobile-showcase.png"
+                alt="KanbanKaii mobile dashboard with Slack, analytics, and organization workspace cards"
+                className="relative z-10 mx-auto w-[min(78vw,29rem)] select-none drop-shadow-[0_2rem_4rem_rgba(79,70,229,0.18)] lg:mr-[-1.5rem] lg:w-[37rem] xl:mr-[-2.5rem] xl:w-[41rem]"
+                draggable="false"
+              />
             </div>
           </div>
         </section>
@@ -176,7 +193,9 @@ export function LandingPage() {
                 <span className="text-xs font-black text-violet-400">
                   {feature.number}
                 </span>
-                <h3 className="mt-12 text-xl font-bold text-slate-950">{feature.title}</h3>
+                <h3 className="mt-12 text-xl font-bold text-slate-950">
+                  {feature.title}
+                </h3>
                 <p className="mt-3 text-sm leading-6 text-slate-500">
                   {feature.description}
                 </p>
