@@ -6,7 +6,10 @@ import type {
   OrganizationBoardSlackChannel,
   OrganizationMember,
 } from '@/api/organizations';
-import type { OrganizationSlackBindingStatus } from '@/integrations/slack/api';
+import type {
+  OrganizationSlackBindingStatus,
+  SlackChannelRefreshResponse,
+} from '@/integrations/slack/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AppDropdown } from '@/components/ui/app-dropdown';
@@ -28,6 +31,7 @@ interface ProjectBoardsPanelProps {
   boardMemberUserId: string;
   boardMemberRole: OrganizationBoardRole;
   slackBinding: OrganizationSlackBindingStatus;
+  slackChannelRefresh: SlackChannelRefreshResponse | null;
   slackChannelId: string;
   slackChannelName: string;
   showSlackChannelForm: boolean;
@@ -70,6 +74,7 @@ export function ProjectBoardsPanel({
   boardMemberUserId,
   boardMemberRole,
   slackBinding,
+  slackChannelRefresh,
   slackChannelId,
   slackChannelName,
   showSlackChannelForm,
@@ -189,6 +194,7 @@ export function ProjectBoardsPanel({
                 channels={boardSlackChannels}
                 canManage={canManageSelectedBoard}
                 slackBinding={slackBinding}
+                slackChannelRefresh={slackChannelRefresh}
                 slackChannelId={slackChannelId}
                 slackChannelName={slackChannelName}
                 showForm={showSlackChannelForm}
@@ -248,6 +254,7 @@ function BoardSlackChannels({
   channels,
   canManage,
   slackBinding,
+  slackChannelRefresh,
   slackChannelId,
   slackChannelName,
   showForm,
@@ -263,6 +270,7 @@ function BoardSlackChannels({
   channels: OrganizationBoardSlackChannel[];
   canManage: boolean;
   slackBinding: OrganizationSlackBindingStatus;
+  slackChannelRefresh: SlackChannelRefreshResponse | null;
   slackChannelId: string;
   slackChannelName: string;
   showForm: boolean;
@@ -326,7 +334,13 @@ function BoardSlackChannels({
           return (
             <div key={key} className="flex flex-col gap-2 py-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-xs font-medium text-slate-700">{channel.slack_channel_name || channel.slack_channel_id}</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-xs font-medium text-slate-700">{channel.slack_channel_name || channel.slack_channel_id}</p>
+                  <SlackChannelStatusBadge
+                    channel={channel}
+                    refresh={slackChannelRefresh}
+                  />
+                </div>
                 <p className="mt-0.5 text-[10px] text-slate-400">{channel.slack_team_id} · {channel.slack_channel_id}</p>
               </div>
               {canManage && (
@@ -345,6 +359,41 @@ function BoardSlackChannels({
         {channels.length === 0 && <p className="py-3 text-center text-[11px] text-slate-500">No Slack channels linked to this board yet.</p>}
       </div>
     </div>
+  );
+}
+
+function SlackChannelStatusBadge({
+  channel,
+  refresh,
+}: {
+  channel: OrganizationBoardSlackChannel;
+  refresh: SlackChannelRefreshResponse | null;
+}) {
+  if (!refresh) {
+    return (
+      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-semibold text-slate-500">
+        Linked
+      </span>
+    );
+  }
+  if (refresh.reconnect_required) {
+    return (
+      <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[9px] font-semibold text-amber-700">
+        Reconnect needed
+      </span>
+    );
+  }
+  if (refresh.manual_invites_required.includes(channel.slack_channel_id)) {
+    return (
+      <span className="rounded-full bg-orange-50 px-2 py-0.5 text-[9px] font-semibold text-orange-700">
+        Needs invite
+      </span>
+    );
+  }
+  return (
+    <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[9px] font-semibold text-emerald-700">
+      Connected
+    </span>
   );
 }
 

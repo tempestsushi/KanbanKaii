@@ -6,6 +6,7 @@ import {
   refreshOrganizationSlackChannels,
   startSlackConnection,
   type OrganizationSlackBindingStatus,
+  type SlackChannelRefreshResponse,
 } from '@/integrations/slack/api';
 import { disconnectedSlackBinding } from './organizationConstants';
 
@@ -21,6 +22,8 @@ export function useOrganizationSlackConnection({
   const [slackBinding, setSlackBinding] = useState<OrganizationSlackBindingStatus>(disconnectedSlackBinding);
   const [isConnectingSlack, setIsConnectingSlack] = useState(false);
   const [isRefreshingSlackChannels, setIsRefreshingSlackChannels] = useState(false);
+  const [latestSlackChannelRefresh, setLatestSlackChannelRefresh] =
+    useState<SlackChannelRefreshResponse | null>(null);
 
   useEffect(() => {
     const query = new URLSearchParams(window.location.search);
@@ -52,6 +55,7 @@ export function useOrganizationSlackConnection({
     setIsRefreshingSlackChannels(true);
     try {
       const result = await refreshOrganizationSlackChannels(organization.id);
+      setLatestSlackChannelRefresh(result);
       if (result.reconnect_required) {
         setSlackBinding((current) => ({
           ...current,
@@ -75,6 +79,7 @@ export function useOrganizationSlackConnection({
         }
       }
     } catch (refreshError) {
+      setLatestSlackChannelRefresh(null);
       toast.error(refreshError instanceof Error ? refreshError.message : 'Could not refresh Slack channels');
     } finally {
       setIsRefreshingSlackChannels(false);
@@ -85,6 +90,7 @@ export function useOrganizationSlackConnection({
     connectOrganizationSlack,
     isConnectingSlack,
     isRefreshingSlackChannels,
+    latestSlackChannelRefresh,
     refreshSlackChannels,
     setSlackBinding,
     slackBinding,

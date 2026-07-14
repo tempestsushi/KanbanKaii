@@ -21,6 +21,7 @@ import { slugify } from '@/components/organization/organization-ui';
 import {
   refreshOrganizationSlackChannels,
   type OrganizationSlackBindingStatus,
+  type SlackChannelRefreshResponse,
 } from '@/integrations/slack/api';
 
 type OrganizationBoardsOptions = {
@@ -61,6 +62,7 @@ export function useOrganizationBoards({
   const [boardMemberRole, setBoardMemberRole] = useState<OrganizationBoardRole>('MEMBER');
   const [slackChannelId, setSlackChannelId] = useState('');
   const [slackChannelName, setSlackChannelName] = useState('');
+  const [slackChannelRefresh, setSlackChannelRefresh] = useState<SlackChannelRefreshResponse | null>(null);
 
   const changeBoardName = (value: string) => {
     setBoardName(value);
@@ -79,6 +81,7 @@ export function useOrganizationBoards({
     setConfirmBoardMemberRemove(null);
     setConfirmSlackChannelRemove(null);
     setShowSlackChannelForm(false);
+    setSlackChannelRefresh(null);
     try {
       const [loadedBoardMembers, loadedBoardSlackChannels] = await Promise.all([
         listOrganizationBoardMembers(organization.id, boardId),
@@ -171,6 +174,7 @@ export function useOrganizationBoards({
       setBoardSlackChannels(await listOrganizationBoardSlackChannels(organization.id, selectedBoard.id));
       try {
         const refresh = await refreshOrganizationSlackChannels(organization.id);
+        setSlackChannelRefresh(refresh);
         if (refresh.reconnect_required) {
           toast.error('Slack channel linked, but Slack needs updated permissions. Reconnect Slack once.');
         } else if (refresh.manual_invites_required.includes(slackChannelId.trim())) {
@@ -183,6 +187,7 @@ export function useOrganizationBoards({
           );
         }
       } catch {
+        setSlackChannelRefresh(null);
         toast.warning('Slack channel linked, but KanbanKaii could not verify channel membership yet.');
       }
     } catch (channelError) {
@@ -196,6 +201,10 @@ export function useOrganizationBoards({
     if (!organization || !selectedBoard) return;
     try {
       await removeOrganizationBoardSlackChannel(organization.id, selectedBoard.id, channel.slack_team_id, channel.slack_channel_id);
+      setSlackChannelRefresh((current) => current ? {
+        ...current,
+        manual_invites_required: current.manual_invites_required.filter((channelId) => channelId !== channel.slack_channel_id),
+      } : current);
       setBoardSlackChannels((items) =>
         items.filter((item) => item.slack_team_id !== channel.slack_team_id || item.slack_channel_id !== channel.slack_channel_id),
       );
@@ -248,6 +257,7 @@ export function useOrganizationBoards({
     setBoardMemberUserId,
     setSlackChannelId,
     setSlackChannelName,
+    slackChannelRefresh,
     slackChannelId,
     slackChannelName,
   };

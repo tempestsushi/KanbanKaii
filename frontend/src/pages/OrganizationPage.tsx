@@ -75,6 +75,7 @@ export function OrganizationPage() {
           boardMemberUserId={page.boardMemberUserId}
           boardMemberRole={page.boardMemberRole}
           slackBinding={page.slackBinding}
+          slackChannelRefresh={page.slackChannelRefresh ?? page.latestSlackChannelRefresh}
           slackChannelId={page.slackChannelId}
           slackChannelName={page.slackChannelName}
           showSlackChannelForm={page.showSlackChannelForm}
