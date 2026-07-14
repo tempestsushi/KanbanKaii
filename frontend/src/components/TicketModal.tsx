@@ -89,63 +89,63 @@ export function TicketModal({ ticket, isOpen, defaultStatus, onClose, onSave, on
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="grid max-h-[92dvh] w-[calc(100vw-1.5rem)] max-w-[26rem] grid-rows-[auto,minmax(0,1fr),auto] gap-0 overflow-hidden rounded-xl border-white/70 bg-white/95 p-0 shadow-2xl sm:max-h-[86vh] sm:max-w-md">
-        <DialogHeader className="border-b border-slate-100 px-4 py-3 pr-11 sm:px-5">
-          <DialogTitle className="text-base">{readOnly ? 'Ticket details' : ticket ? 'Edit ticket' : 'Create ticket'}</DialogTitle>
+      <DialogContent className="grid max-h-[78dvh] w-[min(21rem,calc(100vw-3.5rem))] max-w-[21rem] grid-rows-[auto,minmax(0,1fr),auto] gap-0 overflow-hidden rounded-2xl border-white/80 bg-white/95 p-0 shadow-2xl sm:max-h-[82vh] sm:w-[26rem] sm:max-w-md">
+        <DialogHeader className="border-b border-slate-100 px-3.5 py-2.5 pr-10 sm:px-5 sm:py-3">
+          <DialogTitle className="text-center text-sm sm:text-left sm:text-base">{readOnly ? 'Ticket details' : ticket ? 'Edit ticket' : 'Create ticket'}</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-3 overflow-y-auto px-4 py-3 sm:px-5">
+        <div className="grid gap-2.5 overflow-y-auto px-3.5 py-3 sm:gap-3 sm:px-5">
           {(isAssignedTicket || hasRequester) && ticket && (
-            <div className="grid gap-3 rounded-lg border border-violet-100 bg-violet-50/60 p-3 sm:grid-cols-2">
+            <div className="grid gap-2 rounded-lg border border-violet-100 bg-violet-50/60 p-2.5 sm:grid-cols-2 sm:gap-3 sm:p-3">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-violet-500">
                   {isAssignedTicket ? 'Assigned by' : 'Requested by'}
                 </p>
-                <p className="mt-1 truncate text-sm font-medium text-slate-700">{ticket.requestedByName ?? 'Organization lead'}</p>
+                <p className="mt-0.5 truncate text-xs font-medium text-slate-700 sm:mt-1 sm:text-sm">{ticket.requestedByName ?? 'Organization lead'}</p>
               </div>
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-violet-500">
                   {isAssignedTicket ? 'Assigned to' : 'Ticket owner'}
                 </p>
-                <p className="mt-1 truncate text-sm font-medium text-slate-700">{ticket.assignee}</p>
+                <p className="mt-0.5 truncate text-xs font-medium text-slate-700 sm:mt-1 sm:text-sm">{ticket.assignee}</p>
               </div>
             </div>
           )}
           <div className="grid gap-1.5">
-            <Label htmlFor="ticket-title">Title</Label>
-            <Input className="h-10" id="ticket-title" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="What needs to be done?" disabled={readOnly} />
+            <Label className="text-xs" htmlFor="ticket-title">Title</Label>
+            <Input className="h-9 text-sm" id="ticket-title" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="What needs to be done?" disabled={readOnly} />
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="ticket-description">Description</Label>
-            <Textarea className="min-h-20" id="ticket-description" value={description} onChange={(event) => setDescription(event.target.value)} rows={3} placeholder="Add useful context and acceptance details" disabled={readOnly} />
+            <Label className="text-xs" htmlFor="ticket-description">Description</Label>
+            <Textarea className="min-h-16 text-sm sm:min-h-20" id="ticket-description" value={description} onChange={(event) => setDescription(event.target.value)} rows={2} placeholder="Add useful context and acceptance details" disabled={readOnly} />
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-2.5 sm:grid-cols-2 sm:gap-3">
             <div className="grid gap-1.5">
-              <Label htmlFor="ticket-assignee">Assignee</Label>
+              <Label className="text-xs" htmlFor="ticket-assignee">Assignee</Label>
               {assigneeOptions && !ticket ? (
                 <Select value={assigneeUserId} onValueChange={setAssigneeUserId} disabled={readOnly}>
                   <SelectTrigger id="ticket-assignee"><SelectValue placeholder="Select member" /></SelectTrigger>
                   <SelectContent>{assigneeOptions.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent>
                 </Select>
               ) : (
-                <Input className="h-10" id="ticket-assignee" value={assignee} onChange={(event) => setAssignee(event.target.value)} placeholder="Name" disabled={readOnly || Boolean(assigneeOptions)} />
+                <Input className="h-9 text-sm" id="ticket-assignee" value={assignee} onChange={(event) => setAssignee(event.target.value)} placeholder="Name" disabled={readOnly || Boolean(assigneeOptions)} />
               )}
             </div>
             <div className="grid gap-1.5">
-              <Label>Priority</Label>
+              <Label className="text-xs">Priority</Label>
               <Select value={priority} onValueChange={(value: TicketPriority) => setPriority(value)} disabled={readOnly}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{TICKET_PRIORITIES.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="grid gap-1.5">
-              <Label>Status</Label>
+              <Label className="text-xs">Status</Label>
               <Select value={status} onValueChange={(value: TicketStatus) => setStatus(value)} disabled={readOnly}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{TICKET_STATUSES.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="grid gap-1.5">
-              <Label>Source</Label>
+              <Label className="text-xs">Source</Label>
               <Select value={source} onValueChange={(value: TicketSource) => setSource(value)} disabled={readOnly}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{TICKET_SOURCES.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent>
@@ -153,10 +153,10 @@ export function TicketModal({ ticket, isOpen, defaultStatus, onClose, onSave, on
             </div>
           </div>
         </div>
-        <DialogFooter className="gap-2 border-t border-slate-100 bg-white px-4 py-3 sm:gap-2 sm:px-5">
-          {ticket && !readOnly && <Button variant="destructive" className="sm:mr-auto" disabled={isSaving || isDeleting} onClick={() => setDeleteConfirmationOpen(true)}><Trash2 className="mr-2 h-4 w-4" />Delete</Button>}
-          <Button variant="outline" disabled={isSaving || isDeleting} onClick={onClose}>{readOnly ? 'Close' : 'Cancel'}</Button>
-          {!readOnly && <Button disabled={!title.trim() || !description.trim() || (Boolean(assigneeOptions) && !ticket && !assigneeUserId) || isSaving || isDeleting} onClick={() => void submit()}>{isSaving ? (ticket ? 'Saving…' : 'Creating…') : ticket ? 'Save changes' : 'Create ticket'}</Button>}
+        <DialogFooter className="gap-1.5 border-t border-slate-100 bg-white px-3.5 py-2.5 sm:gap-2 sm:px-5 sm:py-3">
+          {ticket && !readOnly && <Button size="sm" variant="destructive" className="sm:mr-auto" disabled={isSaving || isDeleting} onClick={() => setDeleteConfirmationOpen(true)}><Trash2 className="mr-2 h-3.5 w-3.5" />Delete</Button>}
+          <Button size="sm" variant="outline" disabled={isSaving || isDeleting} onClick={onClose}>{readOnly ? 'Close' : 'Cancel'}</Button>
+          {!readOnly && <Button size="sm" disabled={!title.trim() || !description.trim() || (Boolean(assigneeOptions) && !ticket && !assigneeUserId) || isSaving || isDeleting} onClick={() => void submit()}>{isSaving ? (ticket ? 'Saving…' : 'Creating…') : ticket ? 'Save changes' : 'Create ticket'}</Button>}
         </DialogFooter>
       </DialogContent>
 
