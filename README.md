@@ -1,226 +1,118 @@
 # KanbanKaii
 
-KanbanKaii is an AI-driven ticket management dashboard that turns real work
-requests from Slack into structured Kanban tickets. It is built as a full-stack
-learning project with a React/Vite frontend, FastAPI backend, Supabase Auth and
-Postgres, Redis/ARQ background jobs, and pluggable AI model providers.
+KanbanKaii is an AI-driven ticket management dashboard that turns actionable
+Slack messages into structured Kanban tickets. It combines a React dashboard,
+FastAPI backend, Supabase Auth/Postgres, Redis background jobs, Slack OAuth, and
+a pluggable AI provider layer for local or hosted model triage.
 
-The core idea is simple: people keep talking where work already happens, and
-KanbanKaii quietly separates actionable requests from chatter, questions, and
-empty mentions.
+The goal is simple: keep work conversations inside Slack, but automatically
+capture the real tasks into a board where they can be assigned, edited, moved,
+and tracked.
 
-## What the app does
+## What it does
 
-- Converts actionable Slack mentions into clean Kanban tickets.
-- Ignores casual conversation and non-task messages.
-- Splits one Slack message into multiple tickets when it contains multiple tasks.
-- Supports private personal task boards.
-- Supports organization workspaces with roles, project boards, members, and Slack channel mappings.
-- Shows tickets in `Pending`, `In Progress`, and `Completed` columns.
-- Persists manual ticket creation, editing, deletion, and drag-and-drop status changes.
-- Uses Supabase Realtime so tickets appear without full-page refreshes.
-- Uses Redis/ARQ so Slack webhooks respond quickly while AI processing happens in the background.
-- Supports local Ollama models and hosted Gemini models through a model provider abstraction.
-- Includes PWA metadata so the deployed app can be added to a mobile home screen.
+- Creates Kanban tickets from actionable Slack mentions.
+- Ignores chatter, empty mentions, and non-task questions.
+- Splits one message into multiple tickets when multiple tasks are present.
+- Supports manual ticket creation, editing, deletion, search, filter, sort, and drag-and-drop status updates.
+- Provides private `My Tasks` boards for each signed-in user.
+- Supports organization workspaces with members, roles, project boards, and Slack channel-to-board mapping.
+- Shows organization/project tickets based on the current user's role and board membership.
+- Uses Supabase Realtime so new tickets can appear without refreshing the whole app.
+- Uses Redis + ARQ workers so Slack webhooks respond quickly while AI processing happens in the background.
+- Supports hosted Gemini models and local Ollama models through environment configuration.
+- Includes PWA metadata so the app can be installed from mobile browsers.
 
-## Major functionality
+## App flow
 
-### Personal Kanban board
+```text
+Slack message
+  ↓
+FastAPI Slack webhook
+  ↓
+Signature check, duplicate check, empty-message filtering
+  ↓
+Redis / ARQ background job
+  ↓
+Slack user + channel + organization context resolution
+  ↓
+AI triage model
+  ↓
+Structured task JSON
+  ↓
+Ticket factory
+  ↓
+Supabase tickets table
+  ↓
+React Kanban board + Supabase Realtime updates
+```
 
-Each signed-in user gets a private board for their own tasks. Tickets can be:
+Slack does not send messages through the frontend. Slack talks directly to the
+FastAPI backend. The frontend only reads the resulting tickets and lets users
+manage them.
 
-- created manually,
-- created by Slack AI triage,
-- edited,
-- deleted,
-- dragged between columns,
-- filtered and sorted,
-- searched,
-- updated in realtime.
+## Main features
 
-Personal tickets are owned by the authenticated Supabase user. The frontend
-never chooses another user's owner ID.
+### Personal board
 
-### Organization workspace
+Each authenticated user gets a private Kanban board with three columns:
 
-KanbanKaii also supports a shared organization layer for team workflows.
+- `Pending`
+- `In Progress`
+- `Completed`
 
-Organizations include:
+Tickets can be created manually or generated from Slack. Users can update the
+ticket details, delete tickets, and drag tickets between columns.
 
-- manager/owner and member roles,
-- member invitations,
-- role changes,
-- member removal,
-- organization deletion,
-- leaving an organization,
-- project boards,
-- board-specific members,
-- board-specific Slack channel mappings.
+### Organization board
 
-The organization board is primarily a visibility layer. Members can see tickets
-for boards they belong to, while status updates are still driven from the
-assigned user's own task board.
+Organizations add a team layer on top of personal tasks.
 
-### Project boards
-
-Project boards let managers split organization work by project or Slack channel.
-
-Example:
-
-- `Frontend`
-- `Backend`
-- `Launch`
-- `Leadership`
-
-A Slack channel can be linked to a project board. When a manager or team lead
-assigns work from a linked channel, the created organization ticket is attached
-to that board.
-
-Channel status badges show whether a Slack channel is:
-
-- linked only,
-- connected,
-- missing an invite,
-- or requiring Slack reconnect because scopes changed.
+- Managers can create organizations and project boards.
+- Members can be invited through the app.
+- Project boards can be linked to Slack channels.
+- Organization tickets can show which project board they belong to.
+- Members see the tickets for boards they are part of.
+- Assigned users update their own task status from `My Tasks`; the organization view reflects that progress.
 
 ### Slack integration
 
-Slack is connected through OAuth and verified webhooks.
+Slack is connected with OAuth and verified webhooks.
 
-Implemented Slack behavior:
+The backend handles:
 
-- OAuth connection and reconnection.
-- Organization workspace verification.
-- Slack event signature verification.
-- Duplicate webhook protection.
-- Empty mention filtering.
-- Bot-message filtering.
-- Redis queueing before AI processing.
-- Per-user AI rate limiting.
-- Mention-to-user resolution.
-- Display-name resolution.
-- Slack channel name lookup.
-- Slack channel metadata refresh.
-- Public channel auto-join using `channels:join`.
-- Private channel manual invite detection.
-- Organization project-board routing through Slack channel IDs.
-
-Public channels can be auto-joined by the bot after the correct Slack scope is
-granted. Private channels still require one manual app invite from inside Slack,
-because Slack does not allow apps to silently join private channels.
+- OAuth connect/reconnect/disconnect
+- Slack event signature verification
+- bot-message and duplicate-event filtering
+- public channel auto-join when scopes allow it
+- private channel invite detection
+- Slack display-name and channel-name resolution
+- per-user AI rate limiting
+- project-board routing through Slack channel IDs
 
 ### AI triage
 
-The backend sends normalized Slack text to the configured AI provider and
-expects strict structured task data.
+The AI layer receives cleaned Slack text and returns strict structured task
+data. The active model provider is selected from `backend/.env`.
 
-The triage layer can:
+Supported providers:
 
-- decide whether a message is actionable,
-- extract one or more tasks,
-- generate ticket titles,
-- clean descriptions,
-- estimate priority,
-- reject empty mentions,
-- reject non-actionable questions,
-- cap overly long Slack inputs before model processing.
-
-The model provider is configurable from the backend environment.
-
-Supported direction:
-
-- `ollama` for local models such as `llama3.2:3b`
-- `gemini` for hosted Gemini models
-
-### Authentication and sessions
-
-Supabase Auth powers:
-
-- signup,
-- login,
-- password reset,
-- protected application routes,
-- authenticated API requests,
-- user profile data,
-- persistent user settings.
-
-The frontend uses the Supabase publishable key. Backend-only secrets remain in
-the backend `.env`.
-
-### Settings, profile, analytics, and notifications
-
-The app includes:
-
-- profile page connected to Supabase user data,
-- settings persistence,
-- Slack connection card,
-- organization settings,
-- notification dropdown,
-- mark-as-read notifications,
-- analytics based on the authenticated user's ticket data.
-
-### Progressive Web App support
-
-KanbanKaii includes basic PWA support:
-
-- web app manifest,
-- mobile theme color,
-- home-screen icons,
-- service worker registration,
-- offline fallback page.
-
-This enables mobile browsers to offer `Install app` or `Add to Home Screen`
-after deployment over HTTPS.
-
-## Architecture
-
-```text
-Slack Events
-   │
-   ▼
-FastAPI webhook endpoint
-   │ verifies signature, filters obvious noise
-   │
-   ▼
-Supabase webhook delivery row + Redis/ARQ job
-   │
-   ▼
-ARQ worker
-   │ resolves Slack users, channel, organization role, project board
-   │
-   ▼
-AI provider
-   │ returns structured task JSON
-   │
-   ▼
-Ticket factory
-   │
-   ▼
-Supabase tickets table
-   │
-   ▼
-React frontend via authenticated API + Supabase Realtime
-```
-
-Slack messages do not pass through the React frontend. Slack talks directly to
-FastAPI. FastAPI stores and queues events quickly so Slack does not time out
-while local or hosted AI inference runs.
+- `gemini`
+- `ollama`
 
 ## Tech stack
 
-### Frontend
+Frontend:
 
-- React 18
+- React
 - TypeScript
 - Vite
 - Tailwind CSS
-- Shadcn-style UI components
-- dnd-kit for drag and drop
-- Supabase JavaScript client
-- lucide-react icons imported individually
-- PWA manifest and service worker
+- Shadcn-style components
+- dnd-kit
+- Supabase JS client
 
-### Backend
+Backend:
 
 - Python 3.11+
 - FastAPI
@@ -228,310 +120,266 @@ while local or hosted AI inference runs.
 - Supabase Python client
 - Redis
 - ARQ workers
-- Slack OAuth and event webhooks
-- Pluggable AI provider layer
-- Ollama and Gemini model support
+- Slack OAuth + Events API
 
-### Infrastructure
+Infrastructure:
 
 - Supabase Auth
 - Supabase Postgres
-- Supabase Row Level Security
 - Supabase Realtime
-- Redis for queues, rate limiting, OAuth state, and transient invitations
-- Vercel for frontend deployment
-- ngrok or another tunnel for exposing the local backend during development
+- Redis for queues, rate limits, OAuth state, and short-lived invitations
+- ngrok or Cloudflare Tunnel for local webhook testing
+- Vercel-ready frontend
 
 ## Project structure
 
 ```text
 kanbanticket/
-├── frontend/
-│   ├── public/                 # PWA manifest, service worker, icons, social image
-│   ├── src/api/                # API clients for tickets, orgs, settings, profile
-│   ├── src/auth/               # Supabase auth context and route guards
-│   ├── src/components/         # Kanban, layout, organization, auth, settings UI
-│   ├── src/hooks/              # Page controllers and feature-specific hooks
-│   ├── src/integrations/slack/ # Slack frontend API and connection UI
-│   └── src/pages/              # Landing, auth, dashboard, org, settings pages
-├── backend/
-│   ├── app/auth/               # Supabase JWT verification
-│   ├── app/database/           # Supabase client and ticket repository
-│   ├── app/integrations/slack/ # Slack routes, services, queueing, processing
-│   ├── app/maintenance/        # Cleanup jobs
-│   ├── app/organizations/      # Organization repository, routes, invite store
-│   ├── app/prompts/            # AI prompt templates
-│   ├── app/redis/              # Redis connection, ARQ pool, rate limiter
-│   ├── app/routes/             # General API routes
-│   ├── app/services/           # AI providers and ticket factory
-│   ├── app/workers/            # ARQ worker entry point
-│   ├── supabase/migrations/    # Database schema, functions, and RLS
-│   └── tests/                  # Backend unit and route tests
-├── scripts/                    # Local startup scripts
-├── COMMANDS.md                 # Copy-paste development commands
+├── frontend/                  # React app
+│   ├── public/                # PWA assets, icons, manifest, service worker
+│   └── src/
+│       ├── api/               # API clients
+│       ├── auth/              # Supabase auth context and guards
+│       ├── components/        # UI components
+│       ├── hooks/             # Page and feature hooks
+│       ├── integrations/      # Slack frontend integration helpers
+│       └── pages/             # Landing, auth, dashboard, org, settings pages
+├── backend/                   # FastAPI app
+│   ├── app/
+│   │   ├── auth/              # Supabase JWT auth
+│   │   ├── database/          # Supabase repositories
+│   │   ├── integrations/      # Slack integration
+│   │   ├── organizations/     # Organization APIs and repositories
+│   │   ├── redis/             # Redis helpers
+│   │   ├── routes/            # General API routes
+│   │   ├── services/          # AI providers and ticket factory
+│   │   └── workers/           # ARQ worker
+│   ├── supabase/migrations/   # Database schema and RLS
+│   └── tests/                 # Backend tests
+├── scripts/                   # Local startup scripts
+├── COMMANDS.md                # Copy-paste command reference
 └── README.md
 ```
 
-## Frontend routes
+## Environment variables
 
-| Route | Access | Purpose |
-| --- | --- | --- |
-| `/` | Public | Landing page and product explanation |
-| `/auth` | Public only | Signup and login |
-| `/reset-password` | Public | Password reset flow |
-| `/dashboard` | Authenticated | Personal Kanban board |
-| `/organization-board` | Authenticated | Organization/project board visibility |
-| `/organization` | Authenticated | Organization settings, members, boards, invites, Slack channels |
-| `/analytics` | Authenticated | Ticket analytics |
-| `/profile` | Authenticated | User profile |
-| `/settings` | Authenticated | Preferences and personal Slack connection |
-| `/join/:token` | Authenticated | Organization invite acceptance |
+Create these files locally. Do not commit real secrets.
 
-## Backend route groups
-
-Interactive docs are available at:
-
-```text
-http://127.0.0.1:8000/docs
-```
-
-### System
-
-| Method | Route | Purpose |
-| --- | --- | --- |
-| `GET` | `/health` | API health check |
-| `GET` | `/health/redis` | Redis health check |
-
-### Tickets
-
-Ticket routes require:
-
-```text
-Authorization: Bearer <supabase-jwt>
-```
-
-| Method | Route | Purpose |
-| --- | --- | --- |
-| `GET` | `/api/tickets` | List personal tickets |
-| `POST` | `/api/tickets` | Create a manual personal ticket |
-| `PATCH` | `/api/tickets/{ticket_id}` | Update ticket details |
-| `PATCH` | `/api/tickets/{ticket_id}/status` | Update ticket status |
-| `DELETE` | `/api/tickets/{ticket_id}` | Delete ticket |
-
-### Organization tickets
-
-| Method | Route | Purpose |
-| --- | --- | --- |
-| `GET` | `/api/tickets/organizations/{organization_id}` | List visible organization tickets |
-| `POST` | `/api/tickets/organizations/{organization_id}` | Create organization ticket |
-| `PATCH` | `/api/tickets/organizations/{organization_id}/{ticket_id}` | Update organization ticket |
-| `DELETE` | `/api/tickets/organizations/{organization_id}/{ticket_id}` | Delete organization ticket |
-
-### Organizations
-
-| Method | Route | Purpose |
-| --- | --- | --- |
-| `GET` | `/api/organizations` | List organizations for the current user |
-| `POST` | `/api/organizations` | Create organization |
-| `GET` | `/api/organizations/{organization_id}` | Get organization |
-| `POST` | `/api/organizations/{organization_id}/leave` | Leave organization |
-| `DELETE` | `/api/organizations/{organization_id}` | Delete organization |
-| `GET` | `/api/organizations/{organization_id}/members` | List members |
-| `PATCH` | `/api/organizations/{organization_id}/members/{user_id}/role` | Change member role |
-| `DELETE` | `/api/organizations/{organization_id}/members/{user_id}` | Remove member |
-
-### Organization boards
-
-| Method | Route | Purpose |
-| --- | --- | --- |
-| `GET` | `/api/organizations/{organization_id}/boards` | List project boards |
-| `POST` | `/api/organizations/{organization_id}/boards` | Create project board |
-| `DELETE` | `/api/organizations/{organization_id}/boards/{board_id}` | Delete project board |
-| `GET` | `/api/organizations/{organization_id}/boards/{board_id}/members` | List board members |
-| `POST` | `/api/organizations/{organization_id}/boards/{board_id}/members` | Add board member |
-| `PATCH` | `/api/organizations/{organization_id}/boards/{board_id}/members/{user_id}/role` | Change board role |
-| `DELETE` | `/api/organizations/{organization_id}/boards/{board_id}/members/{user_id}` | Remove board member |
-| `GET` | `/api/organizations/{organization_id}/boards/{board_id}/slack-channels` | List board Slack channels |
-| `POST` | `/api/organizations/{organization_id}/boards/{board_id}/slack-channels` | Link Slack channel to board |
-| `DELETE` | `/api/organizations/{organization_id}/boards/{board_id}/slack-channels/{team_id}/{channel_id}` | Unlink Slack channel |
-
-### Invitations
-
-Organization invitations are stored in Redis because they are temporary.
-
-| Method | Route | Purpose |
-| --- | --- | --- |
-| `GET` | `/api/organizations/invitations/pending` | List invitations for signed-in email |
-| `POST` | `/api/organizations/invitations/{invite_id}/accept` | Accept in-app invitation |
-| `POST` | `/api/organizations/invitations/{invite_id}/decline` | Decline in-app invitation |
-| `POST` | `/api/organizations/{organization_id}/invites` | Create invitation |
-| `GET` | `/api/organizations/{organization_id}/invites` | List organization invitations |
-| `DELETE` | `/api/organizations/{organization_id}/invites/{invite_id}` | Revoke invitation |
-
-### Slack
-
-| Method | Route | Authentication | Purpose |
-| --- | --- | --- | --- |
-| `POST` | `/api/integrations/slack/connect` | Supabase JWT | Start Slack OAuth |
-| `GET` | `/api/integrations/slack/callback` | OAuth state | Complete Slack OAuth |
-| `GET` | `/api/integrations/slack/status` | Supabase JWT | Personal Slack connection status |
-| `DELETE` | `/api/integrations/slack` | Supabase JWT | Disconnect personal Slack |
-| `GET` | `/api/integrations/slack/organizations/{organization_id}/status` | Supabase JWT | Organization Slack status |
-| `POST` | `/api/integrations/slack/organizations/{organization_id}/channels/refresh` | Supabase JWT | Refresh mapped Slack channel metadata and auto-join public channels |
-| `POST` | `/api/webhooks/slack/events` | Slack signature | Receive Slack events |
-
-### AI triage test route
-
-| Method | Route | Purpose |
-| --- | --- | --- |
-| `POST` | `/api/webhook/triage` | Test normalized triage without a real Slack event |
-
-Example:
-
-```json
-{
-  "text": "Please fix the checkout error before tomorrow.",
-  "user_name": "Aisha",
-  "owner_id": "00000000-0000-0000-0000-000000000000",
-  "source": "SLACK"
-}
-```
-
-## Slack ticket flow
-
-1. A user connects Slack from Settings or connects a verified Slack workspace from Organization settings.
-2. OAuth state is stored temporarily in Redis.
-3. Slack returns to the backend callback.
-4. The backend stores encrypted Slack credentials.
-5. Slack sends message events to `/api/webhooks/slack/events`.
-6. FastAPI verifies the Slack signature.
-7. The webhook handler ignores duplicates, bot messages, empty mentions, and unrelated messages.
-8. Redis rate limiting checks whether the AI request is allowed.
-9. The event ID is queued in ARQ.
-10. The worker loads the event payload.
-11. The worker resolves sender, mentioned users, channel, organization context, and project board mapping.
-12. The AI provider returns strict task data.
-13. The ticket factory creates private or organization tickets.
-14. Supabase persists the tickets.
-15. Supabase Realtime updates the frontend board.
-
-## Organization ticket rules
-
-KanbanKaii separates personal and formal organization work:
-
-- If a member mentions another member, the result is normally a private task.
-- If a manager or team lead assigns work to a member in an organization context, the result can become an organization ticket.
-- If the Slack channel is linked to a project board, the ticket is attached to that project board.
-- If no board-channel mapping exists, the ticket remains visible in the organization-wide board where permitted.
-- Direct messages stay private.
-- Private Slack channels require one manual app invite.
-
-## Environment configuration
-
-Copy example files and keep real secrets out of git.
-
-### Frontend: `frontend/.env`
+### `frontend/.env`
 
 ```env
 VITE_API_BASE_URL=http://127.0.0.1:8000
 VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_your_key
+VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
 ```
 
-Never put service-role keys or backend secrets in `VITE_` variables.
-
-### Backend: `backend/.env`
+### `backend/.env`
 
 ```env
 FRONTEND_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 
 SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your-server-only-key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 
 REDIS_URL=redis://localhost:6379/0
 
 AI_MODEL_PROVIDER=gemini
-GEMINI_API_KEY=
+GEMINI_API_KEY=your_gemini_key
 GEMINI_MODEL=gemini-3.1-flash-lite
 
 OLLAMA_HOST=http://localhost:11434
 OLLAMA_MODEL=llama3.2:3b
 
-SLACK_CLIENT_ID=
-SLACK_CLIENT_SECRET=
-SLACK_SIGNING_SECRET=
-SLACK_REDIRECT_URI=https://your-public-api/api/integrations/slack/callback
+SLACK_CLIENT_ID=your_slack_client_id
+SLACK_CLIENT_SECRET=your_slack_client_secret
+SLACK_SIGNING_SECRET=your_slack_signing_secret
+SLACK_REDIRECT_URI=https://your-public-backend-url/api/integrations/slack/callback
 SLACK_FRONTEND_RETURN_URL=http://localhost:5173/settings
-INTEGRATION_ENCRYPTION_KEY=
+INTEGRATION_ENCRYPTION_KEY=your_fernet_key
 
 SLACK_AI_RATE_LIMIT_REQUESTS=10
 SLACK_AI_RATE_LIMIT_WINDOW_SECONDS=60
 ```
 
-Use `AI_MODEL_PROVIDER=ollama` when running a local model and
-`AI_MODEL_PROVIDER=gemini` when using Gemini.
+Use `AI_MODEL_PROVIDER=gemini` for hosted Gemini. Use
+`AI_MODEL_PROVIDER=ollama` when running a local Ollama model.
 
-## Local setup
+## Running locally
 
-### Frontend
+### 1. Clone and install frontend dependencies
 
 ```powershell
+git clone <your-repo-url>
+cd kanbanticket
 cd frontend
 npm install
+```
+
+Start the frontend:
+
+```powershell
 npm run dev
 ```
 
-### Backend
+Frontend URL:
+
+```text
+http://localhost:5173
+```
+
+### 2. Install backend dependencies
+
+Open another terminal:
 
 ```powershell
-cd backend
+cd D:\kanbanticket\backend
 python -m venv venv
 .\venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
 
-### Redis
+Start FastAPI:
 
-Redis is required for:
+```powershell
+.\venv\Scripts\uvicorn.exe app.main:app --reload --host 127.0.0.1 --port 8000
+```
 
-- ARQ jobs,
-- Slack webhook queueing,
-- OAuth state,
-- organization invitations,
-- AI rate limiting.
+Backend docs:
 
-Check `COMMANDS.md` for the exact local Redis commands used in this project.
+```text
+http://127.0.0.1:8000/docs
+```
 
-### Ollama
+### 3. Start Redis
 
-Only required when `AI_MODEL_PROVIDER=ollama`.
+Redis is required for Slack queueing, OAuth state, invitations, and rate
+limiting.
+
+If using Docker:
+
+```powershell
+docker run --name kanbankaii-redis -p 6379:6379 -d redis:7-alpine redis-server --appendonly yes
+```
+
+If the container already exists:
+
+```powershell
+docker start kanbankaii-redis
+```
+
+Check Redis:
+
+```powershell
+docker exec kanbankaii-redis redis-cli ping
+```
+
+Expected response:
+
+```text
+PONG
+```
+
+### 4. Start the ARQ worker
+
+Open another terminal:
+
+```powershell
+cd D:\kanbanticket\backend
+.\venv\Scripts\Activate.ps1
+arq app.workers.slack_worker.WorkerSettings
+```
+
+The worker processes queued Slack events and calls the AI provider.
+
+### 5. Choose an AI provider
+
+For Gemini, set this in `backend/.env`:
+
+```env
+AI_MODEL_PROVIDER=gemini
+GEMINI_API_KEY=your_key
+GEMINI_MODEL=gemini-3.1-flash-lite
+```
+
+For Ollama:
 
 ```powershell
 ollama pull llama3.2:3b
+ollama serve
 ```
 
-### Local launcher
+Then set:
 
-From the repository root:
+```env
+AI_MODEL_PROVIDER=ollama
+OLLAMA_MODEL=llama3.2:3b
+```
+
+### 6. Expose the backend for Slack
+
+Slack needs a public HTTPS URL for OAuth and Event Subscriptions.
+
+Using ngrok:
 
 ```powershell
+cd C:\ngrok
+.\ngrok.exe http 8000
+```
+
+Set these Slack URLs using your ngrok domain:
+
+```text
+OAuth callback:
+https://your-ngrok-domain.ngrok-free.dev/api/integrations/slack/callback
+
+Event Subscriptions:
+https://your-ngrok-domain.ngrok-free.dev/api/webhooks/slack/events
+```
+
+Also update `SLACK_REDIRECT_URI` in `backend/.env` to match the OAuth callback
+exactly.
+
+### 7. Optional one-command local launcher
+
+After dependencies, Redis container, and environment variables are ready:
+
+```powershell
+cd D:\kanbanticket
 powershell -ExecutionPolicy Bypass -File .\scripts\start-local-server.ps1 -UseNgrok
 ```
 
-To run backend services without Ollama:
+To skip Ollama when using Gemini:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\start-local-server.ps1 -UseNgrok -SkipOllama
 ```
 
-## Tests and checks
+More copy-paste commands are in `COMMANDS.md`.
 
-Backend:
+## Supabase setup
 
-```powershell
-cd backend
-.\venv\Scripts\python.exe -m unittest discover -s tests -v
-```
+1. Create a Supabase project.
+2. Add the frontend Supabase URL and publishable key to `frontend/.env`.
+3. Add the backend Supabase URL and service-role key to `backend/.env`.
+4. Run the SQL files from `backend/supabase/migrations/` in Supabase SQL Editor.
+5. Enable Supabase Realtime for the tickets table if required by the migration notes.
+6. Configure Auth redirect URLs for your local and deployed frontend URLs.
+
+## Slack setup
+
+In your Slack app configuration:
+
+1. Add the OAuth callback URL.
+2. Add the Event Subscriptions request URL.
+3. Add the required bot scopes.
+4. Install the app to your workspace.
+5. Connect Slack from KanbanKaii Settings or Organization settings.
+6. Invite the app to private channels manually when needed.
+
+Public channels can be auto-joined if the app has the correct scope. Private
+channels must be invited from Slack.
+
+## Useful checks
 
 Frontend:
 
@@ -542,58 +390,39 @@ npm run lint
 npm run build
 ```
 
-## Deployment model
+Backend:
 
-The current deployment model is intentionally simple for learning:
+```powershell
+cd backend
+.\venv\Scripts\python.exe -m unittest discover -s tests -v
+```
+
+Health endpoints:
+
+```text
+http://127.0.0.1:8000/health
+http://127.0.0.1:8000/health/redis
+```
+
+## Deployment notes
+
+The current learning deployment model is:
 
 - Vercel hosts the React frontend.
 - Supabase hosts Auth, Postgres, RLS, and Realtime.
-- The backend can run locally on the developer machine.
-- ngrok exposes the local FastAPI backend to Slack and Vercel.
-- Redis and the ARQ worker run beside the backend.
-- Gemini can replace local Ollama when the local machine should not run a model.
+- FastAPI, Redis, and the ARQ worker can run locally during development.
+- ngrok or another tunnel exposes the local backend to Slack.
+- Hosted Gemini can replace local Ollama when you do not want to run a model on your machine.
 
-For Vercel:
+For production, the backend, Redis, and worker should run on an always-on server
+instead of a personal machine.
 
-- set `VITE_API_BASE_URL` to the public backend URL,
-- set Supabase frontend environment variables,
-- add the Vercel origin to backend `FRONTEND_ORIGINS`,
-- configure Slack OAuth and Event Subscriptions to use the public backend URL.
+## Security notes
 
-If the local backend is offline, the frontend can still load, but tickets,
-Slack processing, and organization APIs will not be reachable.
-
-## PWA notes
-
-The app includes:
-
-- `manifest.webmanifest`
-- `sw.js`
-- `offline.html`
-- mobile home-screen icons
-
-After deployment over HTTPS, mobile browsers can offer install options:
-
-- Android Chrome: browser menu -> `Install app` or `Add to Home screen`
-- iOS Safari: Share -> `Add to Home Screen`
-
-## Security and data notes
-
-- `.env` files are ignored and should never be committed.
-- Supabase service-role credentials stay on the backend.
-- Supabase JWTs authenticate API requests.
-- Ticket queries are scoped to the authenticated user or permitted organization context.
-- Supabase RLS protects browser-side access.
+- Never commit `.env` files.
+- Keep Supabase service-role keys backend-only.
+- Frontend API calls use Supabase JWTs.
 - Slack webhook signatures are verified.
-- OAuth state is one-time and stored in Redis with a short TTL.
 - Slack tokens are encrypted before storage.
-- AI requests are rate-limited per connected Slack user.
-- Webhook deliveries are cleaned up by status and age.
-- Temporary organization invitations are stored in Redis instead of permanent database rows.
-
-## Status
-
-KanbanKaii currently supports the full private-ticket flow, organization
-workspace flow, Slack-to-ticket automation, project-board channel routing,
-manual ticket management, realtime updates, settings/profile pages, analytics,
-and mobile PWA installation metadata.
+- OAuth state and organization invitations are temporary Redis records.
+- AI calls are rate-limited per connected Slack user.
